@@ -28,6 +28,13 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
+// Onglet principal séparé
+const projectsNavItem: NavItem = {
+  title: 'Nos Projets',
+  href: '/dashboard/projets',
+  icon: <Building2 className="w-5 h-5" />
+};
+
 const mainNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
   { title: 'Stratégie', href: '/dashboard/strategie', icon: <Target className="w-5 h-5" /> },
@@ -84,8 +91,30 @@ export function Sidebar() {
         </Button>
       </div>
 
+      {/* Nos Projets - Section séparée */}
+      <div className="px-2 pt-4">
+        <Link
+          href={projectsNavItem.href}
+          className={cn(
+            'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors border-2',
+            pathname.startsWith(projectsNavItem.href)
+              ? 'bg-primary text-white border-primary'
+              : 'text-gray-700 border-primary/30 hover:bg-primary/10 hover:border-primary'
+          )}
+        >
+          {projectsNavItem.icon}
+          {!collapsed && <span className="font-medium">{projectsNavItem.title}</span>}
+        </Link>
+      </div>
+
+      {/* Séparateur */}
+      <div className="px-4 py-3">
+        {!collapsed && <p className="text-xs text-gray-400 uppercase tracking-wider">Modules</p>}
+        <div className="border-t border-gray-200 mt-2" />
+      </div>
+
       {/* Main Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-2 px-2 space-y-1 overflow-y-auto">
         {mainNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
