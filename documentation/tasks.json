@@ -1,0 +1,341 @@
+[
+  {
+    "id": 1,
+    "title": "Project Setup and Authentication Foundation",
+    "status": "pending",
+    "details": "Set up Next.js 14 with App Router, TypeScript configuration, and install core dependencies (Tailwind CSS, shadcn/ui, Lucide React Icons). Configure Supabase project with authentication, database schema design for users and roles, and implement role-based access control (Direction Générale, Chef de projet, Équipe terrain, Finance, Commercial, Administrateur). Set up environment variables, establish folder structure following Next.js best practices, and configure basic security headers. Implement email/password authentication with optional 2FA using Supabase Auth.",
+    "priority": "high",
+    "subtasks": [
+      {
+        "id": 1,
+        "title": "Initialize Next.js 14 Project with TypeScript and Core Dependencies",
+        "status": "pending",
+        "details": "Run 'npx create-next-app@latest' with TypeScript and App Router options. Install and configure Tailwind CSS using the official Next.js guide. Set up shadcn/ui by running 'npx shadcn-ui@latest init' and install Lucide React Icons. Configure tsconfig.json with strict mode and path aliases. Set up basic folder structure with app/, components/, lib/, and types/ directories.",
+        "description": "Create a new Next.js 14 project with App Router enabled, configure TypeScript, and install essential dependencies including Tailwind CSS, shadcn/ui, and Lucide React Icons.",
+        "dependencies": [],
+        "testStrategy": "Verify project builds successfully, TypeScript compilation works without errors, and all dependencies are properly installed and configured."
+      },
+      {
+        "id": 2,
+        "title": "Configure Supabase Project and Environment Setup",
+        "status": "pending",
+        "details": "Create new Supabase project and obtain API keys. Install @supabase/supabase-js and @supabase/ssr packages. Create .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY. Set up Supabase client configuration in lib/supabase.ts with proper TypeScript types. Configure security headers in next.config.js including CSP and HSTS.",
+        "description": "Set up Supabase project, configure environment variables, and establish secure connection between Next.js application and Supabase backend.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Test Supabase connection, verify environment variables are loaded correctly, and ensure security headers are properly set in browser developer tools."
+      },
+      {
+        "id": 3,
+        "title": "Design and Implement Database Schema with User Roles",
+        "status": "pending",
+        "details": "Create SQL migration files for users table extending Supabase auth.users, roles table with predefined role types, and user_roles junction table. Implement Row Level Security (RLS) policies for each role type. Create database functions for role assignment and permission checking. Set up proper indexes for performance optimization. Define TypeScript interfaces for database types using Supabase CLI type generation.",
+        "description": "Create comprehensive database schema for users, roles, and role-based access control supporting the six defined user types: Direction Générale, Chef de projet, Équipe terrain, Finance, Commercial, and Administrateur.",
+        "dependencies": [
+          2
+        ],
+        "testStrategy": "Test database migrations, verify RLS policies work correctly for each role, and validate that role assignments function properly through SQL queries."
+      },
+      {
+        "id": 4,
+        "title": "Implement Core Authentication System with Email/Password",
+        "status": "pending",
+        "details": "Create authentication context using React Context API for session management. Implement login, register, and logout functions using Supabase Auth. Build reusable authentication components (LoginForm, RegisterForm, AuthGuard). Set up middleware for route protection based on authentication status. Implement proper error handling and user feedback for authentication flows. Create utility functions for session validation and user data retrieval.",
+        "description": "Build the fundamental authentication system using Supabase Auth with email/password login, registration, and session management integrated with Next.js App Router.",
+        "dependencies": [
+          3
+        ],
+        "testStrategy": "Unit tests for authentication functions, integration tests for login/logout flows, and manual testing of session persistence across page refreshes."
+      },
+      {
+        "id": 5,
+        "title": "Implement Role-Based Access Control and Optional 2FA",
+        "status": "pending",
+        "details": "Create role-based route guards and component-level permission checks. Implement useRole and usePermissions custom hooks for role validation. Build admin interface for role management and user assignment. Set up 2FA using Supabase Auth with TOTP (Time-based One-Time Password). Create role-specific dashboards and navigation components. Implement audit logging for role changes and sensitive operations.",
+        "description": "Build comprehensive role-based access control system and implement optional two-factor authentication using Supabase Auth features.",
+        "dependencies": [
+          4
+        ],
+        "testStrategy": "Test role-based access restrictions, verify 2FA setup and validation flows, manual testing of role assignments, and security testing for privilege escalation attempts."
+      }
+    ],
+    "description": "Initialize the Next.js 14 project with TypeScript, configure Supabase authentication, and establish the core project structure with essential dependencies.",
+    "dependencies": [],
+    "testStrategy": "Unit tests for authentication flows, integration tests for Supabase connection, manual testing of role-based access control, and security testing for authentication endpoints."
+  },
+  {
+    "id": 2,
+    "title": "Public Landing Page and Core UI Components",
+    "status": "pending",
+    "details": "Create responsive landing page using Tailwind CSS and shadcn/ui components following the specified color palette (orange gradients #f5821f → #a44c0d, blue #00529b). Implement institutional header with SNI logo, title, and login button. Build five interactive module cards for Stratégie, Achats/Supply, Chantier/WhatsApp, Finance, and Commercial. Develop animated live ticker component for scrolling key metrics. Create institutional footer with legal links and contacts. Ensure WCAG 2.1 AA compliance with proper contrast ratios, keyboard navigation, and ARIA labels. Establish reusable component library for consistent design language.",
+    "priority": "high",
+    "subtasks": [
+      {
+        "id": 1,
+        "title": "Setup Core UI Component Library and Design System",
+        "status": "pending",
+        "details": "Install and configure shadcn/ui components, set up Tailwind CSS with custom color palette (orange gradients #f5821f → #a44c0d, blue #00529b), create design tokens for spacing, typography, and colors. Build base components like Button, Card, Container, and Typography components with proper TypeScript interfaces. Ensure all components follow WCAG 2.1 AA guidelines with proper contrast ratios and ARIA attributes.",
+        "description": "Establish the foundational UI component library using shadcn/ui and Tailwind CSS with the specified color palette and design tokens. Create reusable components that will be used throughout the landing page.",
+        "dependencies": [],
+        "testStrategy": "Unit tests for component props and accessibility, visual regression tests for design consistency, contrast ratio validation"
+      },
+      {
+        "id": 2,
+        "title": "Develop Institutional Header Component",
+        "status": "pending",
+        "details": "Build header component with SNI logo placement, institutional title display, and login button using established design tokens. Implement responsive behavior for mobile/tablet/desktop breakpoints. Add proper semantic HTML structure with nav elements and ARIA landmarks. Include keyboard navigation support and focus management. Style with Tailwind classes following the design system.",
+        "description": "Create the institutional header featuring SNI logo, title, and login button with responsive design and proper navigation structure.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Responsive design testing across devices, keyboard navigation testing, screen reader compatibility testing"
+      },
+      {
+        "id": 3,
+        "title": "Build Interactive Module Cards Grid",
+        "status": "pending",
+        "details": "Create Card components for each module with consistent styling, hover animations, and interactive states. Implement grid layout using CSS Grid or Flexbox for responsive behavior. Add proper focus indicators, keyboard navigation (Enter/Space activation), and ARIA labels for each card. Include icons or visual indicators for each module type. Ensure cards are properly clickable areas with semantic button or link elements.",
+        "description": "Develop five interactive module cards for Stratégie, Achats/Supply, Chantier/WhatsApp, Finance, and Commercial with hover effects and proper accessibility.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Interaction testing for hover/focus states, keyboard navigation testing, accessibility testing with screen readers"
+      },
+      {
+        "id": 4,
+        "title": "Implement Animated Live Ticker Component",
+        "status": "pending",
+        "details": "Build ticker component using CSS animations or Framer Motion for smooth scrolling effect. Implement infinite scroll behavior with seamless looping. Add pause-on-hover functionality for accessibility. Include proper ARIA live regions for screen reader announcements. Optimize performance with CSS transforms and will-change properties. Make ticker content configurable through props for different metrics display.",
+        "description": "Create an animated scrolling ticker component for displaying live key metrics with smooth animations and performance optimization.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Performance testing for animation smoothness, accessibility testing for motion preferences, cross-browser animation compatibility"
+      },
+      {
+        "id": 5,
+        "title": "Create Landing Page Layout and Footer",
+        "status": "pending",
+        "details": "Create main landing page component that integrates header, module cards grid, live ticker, and footer. Implement proper page structure with semantic HTML5 elements (header, main, footer). Build footer component with legal links, contact information, and proper link styling. Ensure responsive layout works across all device sizes. Add proper page metadata and SEO considerations. Implement skip links for accessibility navigation.",
+        "description": "Assemble all components into the complete landing page layout and develop the institutional footer with legal links and contact information.",
+        "dependencies": [
+          2,
+          3,
+          4
+        ],
+        "testStrategy": "End-to-end testing of complete page functionality, responsive design testing, accessibility audit with automated tools, performance testing for page load times"
+      }
+    ],
+    "description": "Develop the public landing page with institutional header, module cards, live ticker, and footer, along with establishing the core UI component library.",
+    "dependencies": [
+      1
+    ],
+    "testStrategy": "Visual regression testing, accessibility testing with screen readers, responsive design testing across devices, and performance testing for animations and interactions."
+  },
+  {
+    "id": 3,
+    "title": "Global Dashboard and Navigation Framework",
+    "status": "pending",
+    "details": "Implement protected dashboard layout with collapsible sidebar for module navigation. Create the four main dashboard widgets: ProjectMapWidget with Mapbox GL JS or Leaflet integration, FinancialHealthWidget using Recharts/Tremor for charts, FieldFeedWidget for WhatsApp integration via ManyChat webhook, and PriorityAlertsWidget. Implement interactive map with filtering capabilities (status, region, phase, responsible, type) and marker clustering for performance. Set up real-time data updates for widgets and establish the foundation for live ticker metrics (total projects, active chantiers, budget data, revenue, progress, delivered units, alerts). Ensure responsive design across desktop, tablet, and mobile.",
+    "priority": "medium",
+    "subtasks": [
+      {
+        "id": 1,
+        "title": "Implement Protected Dashboard Layout with Collapsible Sidebar",
+        "status": "pending",
+        "details": "Set up the main dashboard container with CSS Grid or Flexbox layout. Implement authentication guards to protect the dashboard route. Create a collapsible sidebar component with toggle functionality, navigation menu items, and responsive behavior. Include proper ARIA attributes for accessibility and smooth animations for collapse/expand transitions.",
+        "description": "Create the main dashboard layout structure with authentication protection and a collapsible sidebar navigation system for module access.",
+        "dependencies": [],
+        "testStrategy": "Unit tests for sidebar toggle functionality, authentication guard tests, responsive design testing across devices"
+      },
+      {
+        "id": 2,
+        "title": "Create ProjectMapWidget with Interactive Mapping",
+        "status": "pending",
+        "details": "Integrate Mapbox GL JS or Leaflet mapping library. Implement map container with zoom controls and layer management. Create custom markers for project locations with status-based styling. Add filtering controls for status, region, phase, responsible, and type. Implement marker clustering using supercluster or similar library for performance with large datasets. Include popup/tooltip functionality for project details on marker interaction.",
+        "description": "Develop the interactive project map widget using Mapbox GL JS or Leaflet with filtering capabilities and marker clustering for performance optimization.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Integration testing for map rendering, performance testing with large datasets, filter functionality testing, marker clustering validation"
+      },
+      {
+        "id": 3,
+        "title": "Build FinancialHealthWidget with Chart Visualizations",
+        "status": "pending",
+        "details": "Set up Recharts or Tremor chart library integration. Create responsive chart components for budget vs actual spending, revenue trends, and financial health indicators. Implement interactive features like tooltips, zoom, and data point selection. Design chart layouts for different financial metrics including bar charts, line charts, and pie charts. Ensure proper data formatting and error handling for financial data display.",
+        "description": "Create the financial health dashboard widget using Recharts or Tremor library to display budget data, revenue metrics, and financial KPIs with interactive charts.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Chart rendering tests, data visualization accuracy validation, interactive feature testing, responsive design verification"
+      },
+      {
+        "id": 4,
+        "title": "Develop FieldFeedWidget with WhatsApp Integration",
+        "status": "pending",
+        "details": "Set up webhook endpoint to receive ManyChat data from WhatsApp integration. Create feed component to display incoming messages and field updates in chronological order. Implement message filtering and categorization features. Add real-time update capability using WebSocket or Server-Sent Events. Include message status indicators and user identification. Design responsive feed layout with infinite scroll or pagination for message history.",
+        "description": "Create the field feed widget that integrates with WhatsApp via ManyChat webhook to display real-time field updates and communications.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Webhook integration testing, real-time update validation, message display accuracy testing, error handling for failed webhook calls"
+      },
+      {
+        "id": 5,
+        "title": "Implement PriorityAlertsWidget and Real-time Data Foundation",
+        "status": "pending",
+        "details": "Build priority alerts widget with alert categorization, severity levels, and action buttons. Implement real-time data update system using WebSocket connections or Server-Sent Events for live ticker metrics (total projects, active chantiers, budget data, revenue, progress, delivered units, alerts). Create data polling mechanisms as fallback. Set up state management for real-time data across all widgets. Implement notification system for critical alerts with browser notifications API.",
+        "description": "Create the priority alerts widget and establish the foundation for real-time data updates across all widgets including live ticker metrics for projects, budget, and progress data.",
+        "dependencies": [
+          2,
+          3,
+          4
+        ],
+        "testStrategy": "Real-time data update testing, alert notification validation, performance testing for concurrent real-time connections, fallback mechanism testing"
+      }
+    ],
+    "description": "Build the secure global dashboard with collapsible sidebar navigation and the four core widgets layout foundation.",
+    "dependencies": [
+      1,
+      2
+    ],
+    "testStrategy": "Integration testing for map functionality, performance testing for real-time updates, cross-browser compatibility testing, and load testing for concurrent users."
+  },
+  {
+    "id": 4,
+    "title": "Micro-SaaS Module Skeletons and Data Integration",
+    "status": "pending",
+    "details": "Develop skeleton implementations for each module: Stratégie (KPI dashboard, action plan tracker), Achats/Supply (order management, stock levels, supplier contracts), Chantier/WhatsApp (milestone tracking, photo uploads, incident reports), Finance (budget vs. actual, invoice tracking, payment status), and Commercial (lead pipeline, reservation management, payment tracking). Implement Supabase database schema for each module with proper relationships and constraints. Set up ManyChat webhook integration for WhatsApp field updates. Create basic CRUD operations and data validation for each module. Implement file upload functionality using Supabase Storage for documents and photos. Establish data synchronization patterns and caching strategies.",
+    "priority": "medium",
+    "subtasks": [
+      {
+        "id": 1,
+        "title": "Design and implement Supabase database schema for all modules",
+        "status": "pending",
+        "details": "Design tables for each module: KPIs, action plans, orders, stock, suppliers, milestones, photos, incidents, budgets, invoices, payments, leads, reservations. Implement foreign key relationships, indexes, and data constraints. Set up row-level security policies. Create database migrations and seed data for testing.",
+        "description": "Create comprehensive database schema for all five micro-SaaS modules (Stratégie, Achats/Supply, Chantier/WhatsApp, Finance, Commercial) with proper table structures, relationships, and constraints",
+        "dependencies": [],
+        "testStrategy": "Database schema validation tests, constraint testing, relationship integrity tests"
+      },
+      {
+        "id": 2,
+        "title": "Implement core CRUD operations and data validation for all modules",
+        "status": "pending",
+        "details": "Create API endpoints for each module's entities. Implement input validation using schema validation libraries. Add error handling and proper HTTP status codes. Create data access layer with proper SQL queries. Implement pagination, filtering, and sorting capabilities.",
+        "description": "Develop basic Create, Read, Update, Delete operations for each module with comprehensive data validation and error handling",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Unit tests for each CRUD operation, validation testing with invalid data, error handling tests"
+      },
+      {
+        "id": 3,
+        "title": "Set up file upload functionality with Supabase Storage",
+        "status": "pending",
+        "details": "Configure Supabase Storage buckets for different file types. Implement file upload API with size and type validation. Set up image processing for photo uploads. Create file access policies and URL generation. Implement file deletion and cleanup processes.",
+        "description": "Implement secure file upload system for documents and photos across all modules using Supabase Storage with proper access controls",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "File upload tests with various formats and sizes, security access tests, storage cleanup tests"
+      },
+      {
+        "id": 4,
+        "title": "Integrate ManyChat webhook for WhatsApp field updates",
+        "status": "pending",
+        "details": "Set up webhook endpoint to receive ManyChat data. Implement webhook signature verification for security. Parse incoming WhatsApp messages and extract relevant field data. Update milestone tracking and incident reports based on webhook data. Implement error handling and retry mechanisms.",
+        "description": "Implement webhook integration with ManyChat to receive and process WhatsApp updates for the Chantier module",
+        "dependencies": [
+          2
+        ],
+        "testStrategy": "Webhook integration tests, message parsing tests, security verification tests, error handling tests"
+      },
+      {
+        "id": 5,
+        "title": "Establish data synchronization patterns and caching strategies",
+        "status": "pending",
+        "details": "Implement real-time data synchronization using Supabase subscriptions. Set up Redis caching for frequently accessed data. Create data consistency checks and conflict resolution. Implement background jobs for data aggregation and reporting. Set up monitoring and logging for data operations.",
+        "description": "Implement data synchronization mechanisms and caching strategies to ensure data consistency and performance across all modules",
+        "dependencies": [
+          2,
+          3,
+          4
+        ],
+        "testStrategy": "Data synchronization tests, cache invalidation tests, performance benchmarking, consistency validation tests"
+      }
+    ],
+    "description": "Implement the core skeleton flows for all five micro-SaaS modules with basic CRUD operations and data management.",
+    "dependencies": [
+      3
+    ],
+    "testStrategy": "Unit tests for CRUD operations, integration tests for webhook functionality, data validation testing, file upload testing, and end-to-end testing for module workflows."
+  },
+  {
+    "id": 5,
+    "title": "AI Assistant and Reporting System",
+    "status": "pending",
+    "details": "Implement floating AI assistant using Gemini API with chat panel interface for real-time data queries and report generation. Create prompt suggestion system and implement context-aware responses based on user role and current module. Develop PDF generation using Puppeteer or PDFKit and Excel export functionality using SheetJS. Build report scheduling system with weekly/monthly options and role-based recipient lists using email service (SendGrid/Postmark). Implement background job processing for report generation using Supabase Edge Functions. Create report templates with embedded charts and data visualizations. Add predictive query capabilities for forecasting delays and cost overruns. Ensure proper error handling and rate limiting for AI API calls.",
+    "priority": "medium",
+    "subtasks": [
+      {
+        "id": 1,
+        "title": "Implement Gemini AI Assistant Integration",
+        "status": "pending",
+        "details": "Set up Gemini AI API credentials and SDK integration. Create floating chat panel component with expandable/collapsible interface. Implement role-based context injection (admin, manager, user) and module-aware prompting. Add rate limiting middleware (e.g., 10 requests per minute per user) and comprehensive error handling for API failures. Create prompt suggestion system with pre-defined queries based on current page context.",
+        "description": "Integrate Gemini AI API with floating chat panel interface for real-time data queries. Implement context-aware responses based on user roles and current module with proper error handling and rate limiting.",
+        "dependencies": [],
+        "testStrategy": "AI response accuracy testing with various query types, rate limiting validation, error handling scenarios, and user role context verification"
+      },
+      {
+        "id": 2,
+        "title": "Develop PDF and Excel Report Generation",
+        "status": "pending",
+        "details": "Set up Puppeteer for PDF generation with custom templates supporting charts from Chart.js or similar library. Implement SheetJS for Excel exports with multiple worksheets, formatting, and chart embedding. Create reusable report template system with configurable layouts, headers, footers, and branding. Support for various data visualization types including tables, charts, and graphs. Implement data aggregation and formatting logic for different report types.",
+        "description": "Create comprehensive PDF generation using Puppeteer or PDFKit and Excel export functionality using SheetJS. Implement report templates with embedded charts and data visualizations.",
+        "dependencies": [],
+        "testStrategy": "Report generation performance testing with large datasets, PDF/Excel format validation, chart rendering verification, and template customization testing"
+      },
+      {
+        "id": 3,
+        "title": "Build Report Scheduling and Email System",
+        "status": "pending",
+        "details": "Set up email service provider (SendGrid or Postmark) with proper authentication and templates. Create scheduling interface allowing users to set up recurring reports (daily, weekly, monthly) with cron job management. Implement role-based recipient management with group assignments and individual overrides. Create email templates for report delivery with proper attachment handling. Add scheduling management dashboard for viewing, editing, and canceling scheduled reports.",
+        "description": "Implement report scheduling system with weekly/monthly options and role-based recipient lists using email service integration (SendGrid/Postmark).",
+        "dependencies": [
+          2
+        ],
+        "testStrategy": "Email delivery testing across different providers, scheduling accuracy verification, recipient list validation, and attachment size limit testing"
+      },
+      {
+        "id": 4,
+        "title": "Implement Background Job Processing with Supabase Edge Functions",
+        "status": "pending",
+        "details": "Create Supabase Edge Functions for report generation jobs with proper queue management and retry logic. Implement job status tracking with progress indicators and completion notifications. Set up database tables for job management including status, progress, error logs, and results. Create job scheduling system that triggers Edge Functions based on user-defined schedules. Implement proper error handling, logging, and monitoring for background processes.",
+        "description": "Set up background job processing system using Supabase Edge Functions for report generation and email delivery to handle resource-intensive operations asynchronously.",
+        "dependencies": [
+          2,
+          3
+        ],
+        "testStrategy": "Background job reliability testing, queue performance under load, error recovery validation, and job status tracking accuracy"
+      },
+      {
+        "id": 5,
+        "title": "Add Predictive Analytics and Query Capabilities",
+        "status": "pending",
+        "details": "Develop predictive algorithms using historical project data to forecast potential delays and budget overruns. Integrate machine learning models or statistical analysis for trend prediction. Create specialized AI prompts for predictive queries that analyze patterns in project timelines, resource allocation, and cost trends. Implement data preprocessing for historical analysis and trend identification. Add visualization components for displaying predictions with confidence intervals and risk assessments.",
+        "description": "Implement predictive query capabilities for forecasting delays and cost overruns using AI-powered analysis of historical project data and trends.",
+        "dependencies": [
+          1
+        ],
+        "testStrategy": "Prediction accuracy validation against historical data, performance testing with large datasets, AI query response verification, and user acceptance testing for predictive insights"
+      }
+    ],
+    "description": "Integrate Gemini AI assistant for data queries and implement comprehensive PDF/Excel reporting with email scheduling capabilities.",
+    "dependencies": [
+      4
+    ],
+    "testStrategy": "AI response accuracy testing, report generation performance testing, email delivery testing, background job reliability testing, and user acceptance testing for AI assistant interactions."
+  }
+]

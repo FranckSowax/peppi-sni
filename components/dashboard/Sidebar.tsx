@@ -1,0 +1,154 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import {
+  Building2,
+  LayoutDashboard,
+  Target,
+  ShoppingCart,
+  HardHat,
+  Wallet,
+  TrendingUp,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  User,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
+
+interface NavItem {
+  title: string;
+  href: string;
+  icon: React.ReactNode;
+}
+
+const mainNavItems: NavItem[] = [
+  { title: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { title: 'Stratégie', href: '/dashboard/strategie', icon: <Target className="w-5 h-5" /> },
+  { title: 'Achats / Supply', href: '/dashboard/achats', icon: <ShoppingCart className="w-5 h-5" /> },
+  { title: 'Chantier', href: '/dashboard/chantier', icon: <HardHat className="w-5 h-5" /> },
+  { title: 'Finance', href: '/dashboard/finance', icon: <Wallet className="w-5 h-5" /> },
+  { title: 'Commercial', href: '/dashboard/commercial', icon: <TrendingUp className="w-5 h-5" /> },
+];
+
+const bottomNavItems: NavItem[] = [
+  { title: 'Paramètres', href: '/dashboard/settings', icon: <Settings className="w-5 h-5" /> },
+];
+
+export function Sidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/');
+    router.refresh();
+  };
+
+  return (
+    <aside
+      className={cn(
+        'fixed left-0 top-0 z-40 h-screen bg-white border-r transition-all duration-300 flex flex-col',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Logo */}
+      <div className="h-16 flex items-center justify-between px-4 border-b">
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-4 h-4 text-white" />
+          </div>
+          {!collapsed && (
+            <span className="font-bold text-lg">PEPPI-SNI</span>
+          )}
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+        {mainNavItems.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                isActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              {item.icon}
+              {!collapsed && <span>{item.title}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom Navigation */}
+      <div className="border-t py-4 px-2 space-y-1">
+        {bottomNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                isActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              {item.icon}
+              {!collapsed && <span>{item.title}</span>}
+            </Link>
+          );
+        })}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          {!collapsed && <span>Déconnexion</span>}
+        </button>
+      </div>
+
+      {/* User Info */}
+      {!collapsed && (
+        <div className="border-t p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+              <User className="w-5 h-5 text-gray-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">Utilisateur</p>
+              <p className="text-xs text-gray-500 truncate">Direction Générale</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
