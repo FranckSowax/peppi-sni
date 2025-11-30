@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -70,8 +71,14 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b">
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-4 h-4 text-white" />
+          <div className="w-10 h-10 relative flex-shrink-0">
+            <Image
+              src="/LOGO SNI copie.png"
+              alt="Logo SNI"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           {!collapsed && (
             <span className="font-bold text-lg">PEPPI-SNI</span>
