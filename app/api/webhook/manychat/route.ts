@@ -138,52 +138,43 @@ export async function POST(request: NextRequest) {
     console.log('ManyChat Webhook received:', JSON.stringify(body, null, 2));
 
     // Extraire les champs ManyChat (custom user fields)
-    // Format ManyChat: cuf_XXXXXXX ou directement les noms
     const senderName = body.cuf_13972417 || body.sender_name || body.name || body.user_name || 'Inconnu';
     const senderPhone = body.phone || body.wa_phone || body.whatsapp_phone || body.sender_phone || '';
     const projectInput = body.cuf_13972421 || body.project || body.project_name || body.projet || '';
-    const reportTypeInput = body.cuf_13972438 || body.type || body.report_type || body.type_rapport || '';
-    const priorityInput = body.cuf_13972456 || body.priority || body.priorite || body.urgence || '';
+    const reportTypeInput = body.report_type_sni || body.cuf_13972438 || body.type || body.report_type || '';
     
-    // Messages selon le type de rapport (plusieurs variables possibles)
-    // cuf_13972443 = message avancement
-    // cuf_13972454 = message problème  
-    // cuf_13972475 = message livraison
+    // Priorité (utilisée pour les problèmes signalés)
+    const priorityInput = body.priorite_sni || body.cuf_13972456 || body.priority || body.priorite || 'moyenne';
+    
+    // Messages selon le type de rapport SNI
+    // ⚠️ Problème → pb_signales_sni
+    // 📊 Avancement → avancees_sni  
+    // 📦 Livraison → materiaux_sni
     const messageContent = 
-      body.cuf_13972443 ||  // Message avancement
-      body.cuf_13972454 ||  // Message problème
-      body.cuf_13972475 ||  // Message livraison
+      body.pb_signales_sni ||      // Message Problème
+      body.avancees_sni ||         // Message Avancement
+      body.materiaux_sni ||        // Message Livraison
+      body.cuf_13972443 ||         // Fallback ancien format
+      body.cuf_13972454 ||
+      body.cuf_13972475 ||
       body.message || 
       body.content || 
-      body.description || 
-      body.text || 
       '';
     
-    // Photos - plusieurs variables possibles pour les images collectées
-    // cuf_13972469 = photos array ou count
-    // Autres variables d'images possibles
-    const photosInput = 
-      body.cuf_13972469 ||  // Photos principales
-      body.cuf_13972470 ||  // Photo 1
-      body.cuf_13972471 ||  // Photo 2
-      body.cuf_13972472 ||  // Photo 3
-      body.cuf_13972473 ||  // Photo 4
-      body.cuf_13972474 ||  // Photo 5
-      body.photos || 
-      body.images || 
-      body.media || 
-      [];
-    
-    // Collecter toutes les photos individuelles si elles existent
+    // Collecter toutes les photos individuelles
     const allPhotos: string[] = [];
     
-    // Ajouter les photos depuis différentes variables
+    // Photos selon le type de rapport SNI
     const photoFields = [
+      // Photos Problème
+      'image_pb_sni_1', 'image_pb_sni_2', 'image_pb_sni_3',
+      // Photos Avancement
+      'image_avancee_sni_1', 'image_avancee_sni_2', 'image_avancee_sni_3',
+      // Photos Livraison Matériaux
+      'materiaux_sni_1', 'materiaux_sni_2', 'materiaux_sni_3',
+      // Anciens formats (fallback)
       'cuf_13972469', 'cuf_13972470', 'cuf_13972471', 'cuf_13972472', 
-      'cuf_13972473', 'cuf_13972474', 'cuf_13972476', 'cuf_13972477',
-      'cuf_13972478', 'cuf_13972479', 'cuf_13972480',
-      'photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5',
-      'image_1', 'image_2', 'image_3', 'image_4', 'image_5',
+      'cuf_13972473', 'cuf_13972474',
       'photos', 'images', 'media'
     ];
     
@@ -203,15 +194,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Dédupliquer les photos
-    const uniquePhotos = Array.from(new Set(allPhotos));
+    const photos = Array.from(new Set(allPhotos));
 
     // Parser et normaliser les données
     const project = findProject(projectInput);
     const reportType = findReportType(reportTypeInput);
     const priority = findPriority(priorityInput);
-    
-    // Utiliser les photos collectées ou parser l'input
-    const photos = uniquePhotos.length > 0 ? uniquePhotos : parsePhotos(photosInput);
 
     // Construire l'objet à insérer
     const messageData = {
@@ -271,37 +259,64 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    message: 'ManyChat Webhook endpoint is active',
-    expected_fields: {
-      cuf_13972417: '👤 Expéditeur (sender_name)',
-      cuf_13972421: '🏗️ Projet (project)',
-      cuf_13972438: '📋 Type de rapport (report_type)',
-      cuf_13972456: '⚡ Priorité (priority)',
-      phone: '📱 Numéro WhatsApp',
-    },
-    message_fields: {
-      cuf_13972443: '📝 Message Avancement',
-      cuf_13972454: '📝 Message Problème',
-      cuf_13972475: '📝 Message Livraison',
-    },
-    photo_fields: {
-      cuf_13972469: '📸 Photos (array ou URLs)',
-      cuf_13972470: '📸 Photo 1',
-      cuf_13972471: '📸 Photo 2',
-      cuf_13972472: '📸 Photo 3',
-      cuf_13972473: '📸 Photo 4',
-      cuf_13972474: '📸 Photo 5',
+    message: 'ManyChat Webhook SNI - Endpoint actif',
+    variables_sni: {
+      common: {
+        cuf_13972417: '👤 Expéditeur',
+        cuf_13972421: '🏗️ Projet',
+        report_type_sni: '📋 Type de rapport',
+        phone: '📱 Numéro WhatsApp',
+      },
+      probleme: {
+        report_type_sni: '⚠️ Signaler Problème',
+        pb_signales_sni: '📝 Contenu du problème',
+        priorite_sni: '⚡ Priorité (haute/moyenne/basse)',
+        image_pb_sni_1: '📸 Photo problème 1',
+        image_pb_sni_2: '📸 Photo problème 2',
+        image_pb_sni_3: '📸 Photo problème 3',
+      },
+      avancement: {
+        report_type_sni: '📊 Avancement travaux',
+        avancees_sni: '📝 Contenu avancement',
+        image_avancee_sni_1: '📸 Photo avancement 1',
+        image_avancee_sni_2: '📸 Photo avancement 2',
+        image_avancee_sni_3: '📸 Photo avancement 3',
+      },
+      livraison: {
+        report_type_sni: '📦 Livraison matériaux',
+        materiaux_sni: '📝 Contenu livraison',
+        materiaux_sni_1: '📸 Photo matériaux 1',
+        materiaux_sni_2: '📸 Photo matériaux 2',
+        materiaux_sni_3: '📸 Photo matériaux 3',
+      },
     },
     supported_report_types: ['avancement', 'probleme', 'livraison', 'photos', 'message'],
     supported_priorities: ['haute', 'moyenne', 'basse'],
-    example_body: {
+    example_probleme: {
       cuf_13972417: 'Jean Dupont',
       cuf_13972421: 'Résidence Les Palmiers',
-      cuf_13972438: 'avancement',
-      cuf_13972456: 'haute',
-      cuf_13972443: 'Les travaux avancent bien, coulage béton terminé',
-      cuf_13972469: 'https://example.com/photo1.jpg',
+      report_type_sni: '⚠️ Signaler Problème',
+      priorite_sni: 'haute',
+      pb_signales_sni: 'Fuite eau détectée au 2ème étage',
+      image_pb_sni_1: 'https://example.com/fuite1.jpg',
+      image_pb_sni_2: 'https://example.com/fuite2.jpg',
       phone: '+241770000000'
+    },
+    example_avancement: {
+      cuf_13972417: 'Marie Martin',
+      cuf_13972421: 'Centre Commercial Oloumi',
+      report_type_sni: '📊 Avancement travaux',
+      avancees_sni: 'Coulage béton 3ème étage terminé',
+      image_avancee_sni_1: 'https://example.com/avancement1.jpg',
+      phone: '+241770000001'
+    },
+    example_livraison: {
+      cuf_13972417: 'Pierre Durand',
+      cuf_13972421: 'École Akébé',
+      report_type_sni: '📦 Livraison matériaux',
+      materiaux_sni: 'Réception 500 sacs de ciment',
+      materiaux_sni_1: 'https://example.com/livraison1.jpg',
+      phone: '+241770000002'
     }
   });
 }
