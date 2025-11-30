@@ -4,6 +4,7 @@ import { ProjectMapWidget } from '@/components/dashboard/widgets/ProjectMapWidge
 import { FinancialChart } from '@/components/dashboard/widgets/FinancialChart';
 import { FieldFeedWidget } from '@/components/dashboard/widgets/FieldFeedWidget';
 import { AlertsWidget } from '@/components/dashboard/widgets/AlertsWidget';
+import { ProjectProgressWidget } from '@/components/dashboard/widgets/ProjectProgressWidget';
 import { Building, TrendingUp, DollarSign, AlertTriangle } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -56,9 +57,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Widgets Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <ProjectMapWidget />
           <FinancialChart />
+          <ProjectProgressWidget />
         </div>
 
         {/* Secondary Widgets */}
