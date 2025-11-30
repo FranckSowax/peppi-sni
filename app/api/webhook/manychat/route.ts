@@ -136,9 +136,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     console.log('ManyChat Webhook received:', JSON.stringify(body, null, 2));
+    
+    // Stocker le raw body pour debug
+    const rawBodyForDebug = JSON.stringify(body);
 
-    // Extraire les champs ManyChat (custom user fields)
-    const senderName = body.cuf_13972417 || body.sender_name || body.name || body.user_name || 'Inconnu';
+    // Extraire les champs ManyChat - chercher dans toutes les clés possibles
+    const allKeys = Object.keys(body);
+    console.log('All received keys:', allKeys);
+    
+    // Chercher le nom de l'expéditeur
+    const senderName = body.cuf_13972417 || body.sender_name || body.name || body.user_name || body.full_name || body.first_name || 'Inconnu';
     const senderPhone = body.phone || body.wa_phone || body.whatsapp_phone || body.sender_phone || '';
     const projectInput = body.cuf_13972421 || body.project || body.project_name || body.projet || '';
     const reportTypeInput = body.report_type_sni || body.cuf_13972438 || body.type || body.report_type || '';
@@ -237,13 +244,16 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Rapport reçu avec succès',
       id: data.id,
-      data: {
+      received_keys: allKeys,
+      parsed_data: {
         sender: senderName,
         project: project.name,
         type: reportType,
         priority: priority,
+        content: messageContent.substring(0, 100),
         photos_count: photos.length,
-      }
+      },
+      raw_body_sample: rawBodyForDebug.substring(0, 500)
     });
 
   } catch (error) {
