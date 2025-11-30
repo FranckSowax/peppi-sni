@@ -149,7 +149,30 @@ Quick Replies:
 - "❌ Annuler" → End Flow
 ```
 
-#### Block 9: Webhook vers Supabase
+#### Block 9: Webhook vers PEPPI-SNI
+
+**Option 1: Webhook API (Recommandé)**
+```
+Action: External Request (POST)
+
+URL: https://peppisni.netlify.app/api/webhook/manychat
+
+Headers:
+- Content-Type: application/json
+
+Body (JSON):
+{
+  "cuf_13972417": "{{cuf_13972417}}",
+  "cuf_13972421": "{{cuf_13972421}}",
+  "cuf_13972438": "{{cuf_13972438}}",
+  "cuf_13972456": "{{cuf_13972456}}",
+  "cuf_13972454": "{{cuf_13972454}}",
+  "cuf_13972469": "{{cuf_13972469}}",
+  "phone": "{{phone}}"
+}
+```
+
+**Option 2: Direct Supabase (Alternative)**
 ```
 Action: External Request (POST)
 
@@ -163,14 +186,13 @@ Headers:
 
 Body (JSON):
 {
-  "sender_name": "{{user_name}}",
+  "sender_name": "{{cuf_13972417}}",
   "sender_phone": "{{phone}}",
-  "project_id": {{project_id}},
-  "project_name": "{{project_name}}",
-  "report_type": "{{report_type}}",
-  "content": "{{message_content}}",
-  "priority": "{{priority}}",
-  "photos": [{{photos_urls}}],
+  "project_name": "{{cuf_13972421}}",
+  "report_type": "{{cuf_13972438}}",
+  "content": "{{cuf_13972454}}",
+  "priority": "{{cuf_13972456}}",
+  "photos": {{cuf_13972469}},
   "status": "nouveau"
 }
 ```
