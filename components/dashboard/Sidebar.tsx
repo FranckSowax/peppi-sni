@@ -18,6 +18,10 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
+  MessageSquare,
+  AlertTriangle,
+  FileText,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
@@ -43,6 +47,14 @@ const mainNavItems: NavItem[] = [
   { title: 'Chantier', href: '/dashboard/chantier', icon: <HardHat className="w-5 h-5" /> },
   { title: 'Finance', href: '/dashboard/finance', icon: <Wallet className="w-5 h-5" /> },
   { title: 'Commercial', href: '/dashboard/commercial', icon: <TrendingUp className="w-5 h-5" /> },
+];
+
+// Outils & Rapports
+const toolsNavItems: NavItem[] = [
+  { title: 'Feed WhatsApp', href: '/dashboard/feed', icon: <MessageSquare className="w-5 h-5" /> },
+  { title: 'Alertes', href: '/dashboard/alertes', icon: <AlertTriangle className="w-5 h-5" /> },
+  { title: 'Courrier', href: '/dashboard/courrier', icon: <FileText className="w-5 h-5" /> },
+  { title: 'Marketing', href: '/dashboard/marketing', icon: <Megaphone className="w-5 h-5" /> },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -123,6 +135,32 @@ export function Sidebar() {
       {/* Main Navigation */}
       <nav className="flex-1 py-2 px-2 space-y-1 overflow-y-auto">
         {mainNavItems.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                isActive
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              {item.icon}
+              {!collapsed && <span>{item.title}</span>}
+            </Link>
+          );
+        })}
+
+        {/* Séparateur Outils & Rapports */}
+        <div className="py-3">
+          {!collapsed && <p className="text-xs text-gray-400 uppercase tracking-wider px-3">Outils & Rapports</p>}
+          <div className="border-t border-gray-200 mt-2" />
+        </div>
+
+        {/* Tools Navigation */}
+        {toolsNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
