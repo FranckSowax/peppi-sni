@@ -1,68 +1,66 @@
 'use client';
 
-import { MapPin, Filter, Maximize2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+import { Filter, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-// Placeholder for map - will be replaced with actual Mapbox/Leaflet integration
+// Dynamic import to avoid SSR issues with Leaflet
+const ProjectMap = dynamic(
+  () => import('@/components/map/ProjectMap').then(mod => mod.ProjectMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-72 bg-gray-100 flex items-center justify-center">
+        <div className="text-gray-500">Chargement de la carte...</div>
+      </div>
+    )
+  }
+);
+
+// Mock projects data with coordinates
+const mockProjects = [
+  { id: 1, name: 'Résidence Okoumé', region: 'Libreville', phase: 'construction', progress: 75, latitude: 0.4162, longitude: 9.4673, alertsCount: 2 },
+  { id: 2, name: 'Marina Bay Libreville', region: 'Libreville', phase: 'construction', progress: 45, latitude: 0.4262, longitude: 9.4473, alertsCount: 5 },
+  { id: 3, name: 'Centre Commercial Akanda', region: 'Akanda', phase: 'livraison', progress: 92, latitude: 0.5062, longitude: 9.4873, alertsCount: 0 },
+  { id: 4, name: 'Logements Sociaux Ntoum', region: 'Ntoum', phase: 'conception', progress: 25, latitude: 0.3862, longitude: 9.7673, alertsCount: 1 },
+  { id: 5, name: 'Cité Administrative Owendo', region: 'Owendo', phase: 'planification', progress: 10, latitude: 0.2962, longitude: 9.5073, alertsCount: 0 },
+  { id: 6, name: 'Résidence Les Palmiers', region: 'Port-Gentil', phase: 'termine', progress: 100, latitude: -0.7193, longitude: 8.7815, alertsCount: 0 },
+];
+
 export function ProjectMapWidget() {
+  const [selectedProject, setSelectedProject] = useState<number | undefined>();
+  const activeProjects = mockProjects.filter(p => p.phase !== 'termine').length;
+
   return (
-    <div className="bg-white rounded-xl border h-full">
+    <div className="bg-white rounded-xl border h-full flex flex-col">
       <div className="p-4 border-b flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-gray-900">Carte des Projets</h3>
-          <p className="text-sm text-gray-500">24 projets actifs</p>
+          <p className="text-sm text-gray-500">{activeProjects} projets actifs</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
             <Filter className="w-4 h-4 mr-1" />
             Filtres
           </Button>
-          <Button variant="ghost" size="icon">
-            <Maximize2 className="w-4 h-4" />
-          </Button>
+          <Link href="/dashboard/projets">
+            <Button variant="ghost" size="icon">
+              <Maximize2 className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
-      <div className="relative h-72 bg-gray-100">
-        {/* Placeholder map */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-              <MapPin className="w-8 h-8 text-primary" />
-            </div>
-            <p className="text-gray-500 text-sm">Carte interactive</p>
-            <p className="text-gray-400 text-xs">Intégration Mapbox à venir</p>
-          </div>
-        </div>
-
-        {/* Mock project markers */}
-        <div className="absolute top-1/4 left-1/3">
-          <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg animate-pulse" />
-        </div>
-        <div className="absolute top-1/2 left-1/2">
-          <div className="w-4 h-4 bg-primary rounded-full border-2 border-white shadow-lg" />
-        </div>
-        <div className="absolute top-2/3 left-1/4">
-          <div className="w-4 h-4 bg-amber-500 rounded-full border-2 border-white shadow-lg" />
-        </div>
-        <div className="absolute top-1/3 right-1/4">
-          <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="p-3 border-t flex items-center gap-4 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-green-500 rounded-full" />
-          <span className="text-gray-600">En cours</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-amber-500 rounded-full" />
-          <span className="text-gray-600">En retard</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-500 rounded-full" />
-          <span className="text-gray-600">Terminé</span>
-        </div>
+      
+      <div className="flex-1 min-h-[288px]">
+        <ProjectMap 
+          projects={mockProjects}
+          height="100%"
+          showControls={true}
+          selectedProjectId={selectedProject}
+          onProjectSelect={setSelectedProject}
+        />
       </div>
     </div>
   );
