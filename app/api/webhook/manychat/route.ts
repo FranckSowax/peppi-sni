@@ -144,14 +144,74 @@ export async function POST(request: NextRequest) {
     const projectInput = body.cuf_13972421 || body.project || body.project_name || body.projet || '';
     const reportTypeInput = body.cuf_13972438 || body.type || body.report_type || body.type_rapport || '';
     const priorityInput = body.cuf_13972456 || body.priority || body.priorite || body.urgence || '';
-    const messageContent = body.cuf_13972454 || body.message || body.content || body.description || body.text || '';
-    const photosInput = body.cuf_13972469 || body.photos || body.images || body.media || [];
+    
+    // Messages selon le type de rapport (plusieurs variables possibles)
+    // cuf_13972443 = message avancement
+    // cuf_13972454 = message problème  
+    // cuf_13972475 = message livraison
+    const messageContent = 
+      body.cuf_13972443 ||  // Message avancement
+      body.cuf_13972454 ||  // Message problème
+      body.cuf_13972475 ||  // Message livraison
+      body.message || 
+      body.content || 
+      body.description || 
+      body.text || 
+      '';
+    
+    // Photos - plusieurs variables possibles pour les images collectées
+    // cuf_13972469 = photos array ou count
+    // Autres variables d'images possibles
+    const photosInput = 
+      body.cuf_13972469 ||  // Photos principales
+      body.cuf_13972470 ||  // Photo 1
+      body.cuf_13972471 ||  // Photo 2
+      body.cuf_13972472 ||  // Photo 3
+      body.cuf_13972473 ||  // Photo 4
+      body.cuf_13972474 ||  // Photo 5
+      body.photos || 
+      body.images || 
+      body.media || 
+      [];
+    
+    // Collecter toutes les photos individuelles si elles existent
+    const allPhotos: string[] = [];
+    
+    // Ajouter les photos depuis différentes variables
+    const photoFields = [
+      'cuf_13972469', 'cuf_13972470', 'cuf_13972471', 'cuf_13972472', 
+      'cuf_13972473', 'cuf_13972474', 'cuf_13972476', 'cuf_13972477',
+      'cuf_13972478', 'cuf_13972479', 'cuf_13972480',
+      'photo_1', 'photo_2', 'photo_3', 'photo_4', 'photo_5',
+      'image_1', 'image_2', 'image_3', 'image_4', 'image_5',
+      'photos', 'images', 'media'
+    ];
+    
+    for (const field of photoFields) {
+      const value = body[field];
+      if (value) {
+        if (Array.isArray(value)) {
+          allPhotos.push(...value.filter((url: string) => url && typeof url === 'string' && url.startsWith('http')));
+        } else if (typeof value === 'string' && value.startsWith('http')) {
+          allPhotos.push(value);
+        } else if (typeof value === 'string' && value.includes('http')) {
+          // Peut contenir plusieurs URLs séparées
+          const urls = value.split(/[,\s]+/).filter((url: string) => url.startsWith('http'));
+          allPhotos.push(...urls);
+        }
+      }
+    }
+    
+    // Dédupliquer les photos
+    const uniquePhotos = Array.from(new Set(allPhotos));
 
     // Parser et normaliser les données
     const project = findProject(projectInput);
     const reportType = findReportType(reportTypeInput);
     const priority = findPriority(priorityInput);
-    const photos = parsePhotos(photosInput);
+    
+    // Utiliser les photos collectées ou parser l'input
+    const photos = uniquePhotos.length > 0 ? uniquePhotos : parsePhotos(photosInput);
 
     // Construire l'objet à insérer
     const messageData = {
@@ -213,15 +273,35 @@ export async function GET() {
     status: 'ok',
     message: 'ManyChat Webhook endpoint is active',
     expected_fields: {
-      cuf_13972417: 'Expéditeur (sender_name)',
-      cuf_13972421: 'Projet (project)',
-      cuf_13972438: 'Type de rapport (report_type)',
-      cuf_13972456: 'Priorité (priority)',
-      cuf_13972454: 'Message (content)',
-      cuf_13972469: 'Photos (photos array)',
-      phone: 'Numéro WhatsApp',
+      cuf_13972417: '👤 Expéditeur (sender_name)',
+      cuf_13972421: '🏗️ Projet (project)',
+      cuf_13972438: '📋 Type de rapport (report_type)',
+      cuf_13972456: '⚡ Priorité (priority)',
+      phone: '📱 Numéro WhatsApp',
+    },
+    message_fields: {
+      cuf_13972443: '📝 Message Avancement',
+      cuf_13972454: '📝 Message Problème',
+      cuf_13972475: '📝 Message Livraison',
+    },
+    photo_fields: {
+      cuf_13972469: '📸 Photos (array ou URLs)',
+      cuf_13972470: '📸 Photo 1',
+      cuf_13972471: '📸 Photo 2',
+      cuf_13972472: '📸 Photo 3',
+      cuf_13972473: '📸 Photo 4',
+      cuf_13972474: '📸 Photo 5',
     },
     supported_report_types: ['avancement', 'probleme', 'livraison', 'photos', 'message'],
     supported_priorities: ['haute', 'moyenne', 'basse'],
+    example_body: {
+      cuf_13972417: 'Jean Dupont',
+      cuf_13972421: 'Résidence Les Palmiers',
+      cuf_13972438: 'avancement',
+      cuf_13972456: 'haute',
+      cuf_13972443: 'Les travaux avancent bien, coulage béton terminé',
+      cuf_13972469: 'https://example.com/photo1.jpg',
+      phone: '+241770000000'
+    }
   });
 }
