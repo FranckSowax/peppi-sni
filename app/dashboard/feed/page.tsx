@@ -38,17 +38,28 @@ interface WhatsAppMessage {
   project_name: string | null;
   report_type: string | null;
   content: string;
-  priority: 'haute' | 'moyenne' | 'basse';
+  priority: string | null;  // Peut être null pour avancement/livraison
   photos: string[];
   status: 'nouveau' | 'lu' | 'traite';
   created_at: string;
   processed_at: string | null;
 }
 
-const priorityConfig = {
-  haute: { label: 'Haute', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
-  moyenne: { label: 'Moyenne', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
-  basse: { label: 'Basse', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
+// Couleurs pour les priorités (uniquement pour les problèmes)
+const getPriorityStyle = (priority: string | null) => {
+  if (!priority) return null;
+  const normalized = priority.toLowerCase();
+  if (normalized.includes('haute') || normalized.includes('urgent') || normalized.includes('high')) {
+    return { color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle };
+  }
+  if (normalized.includes('moyenne') || normalized.includes('medium') || normalized.includes('normal')) {
+    return { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock };
+  }
+  if (normalized.includes('basse') || normalized.includes('low') || normalized.includes('faible')) {
+    return { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle };
+  }
+  // Afficher la valeur brute avec un style par défaut
+  return { color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Clock };
 };
 
 const statusConfig = {
@@ -295,20 +306,22 @@ export default function FeedPage() {
         {/* Liste des messages - Format Cards */}
         <div className="space-y-4">
           {filteredMessages.map((msg) => {
-            const priority = priorityConfig[msg.priority] || priorityConfig.moyenne;
+            const priorityStyle = getPriorityStyle(msg.priority);
             const status = statusConfig[msg.status] || statusConfig.nouveau;
             const reportType = msg.report_type ? reportTypeConfig[msg.report_type] : null;
-            const PriorityIcon = priority.icon;
+            const PriorityIcon = priorityStyle?.icon || Clock;
             const ReportIcon = reportType?.icon || MessageCircle;
             const hasPhotos = msg.photos && msg.photos.length > 0;
+            const isProbleme = msg.report_type === 'probleme';
+            const isHighPriority = msg.priority?.toLowerCase().includes('haute') || msg.priority?.toLowerCase().includes('urgent');
 
             return (
               <Card 
                 key={msg.id}
                 className={cn(
                   "overflow-hidden transition-all hover:shadow-lg",
-                  msg.status === 'nouveau' && msg.priority === 'haute' && "border-l-4 border-l-red-500",
-                  msg.status === 'nouveau' && msg.priority !== 'haute' && "border-l-4 border-l-blue-500"
+                  msg.status === 'nouveau' && isProbleme && isHighPriority && "border-l-4 border-l-red-500",
+                  msg.status === 'nouveau' && !isHighPriority && "border-l-4 border-l-blue-500"
                 )}
               >
                 <CardContent className="p-4">
@@ -347,10 +360,13 @@ export default function FeedPage() {
                               {reportType.label}
                             </Badge>
                           )}
-                          <Badge className={cn('border', priority.color)}>
-                            <PriorityIcon className="w-3 h-3 mr-1" />
-                            {priority.label}
-                          </Badge>
+                          {/* Priorité affichée uniquement pour les problèmes */}
+                          {isProbleme && msg.priority && priorityStyle && (
+                            <Badge className={cn('border', priorityStyle.color)}>
+                              <PriorityIcon className="w-3 h-3 mr-1" />
+                              {msg.priority}
+                            </Badge>
+                          )}
                           <Badge className={status.color}>
                             {status.label}
                           </Badge>

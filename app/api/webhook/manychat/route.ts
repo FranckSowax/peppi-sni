@@ -150,23 +150,30 @@ export async function POST(request: NextRequest) {
     const projectInput = body.cuf_13972421 || body.project || body.project_name || body.projet || '';
     const reportTypeInput = body.report_type_sni || body.cuf_13972438 || body.type || body.report_type || '';
     
-    // Priorité (utilisée pour les problèmes signalés)
-    const priorityInput = body.priorite_sni || body.cuf_13972456 || body.priority || body.priorite || 'moyenne';
+    // Déterminer le type de rapport
+    const reportType = findReportType(reportTypeInput);
+    
+    // Priorité - UNIQUEMENT pour les problèmes signalés
+    // Pour Livraison et Avancement, pas de priorité (null)
+    let priorityInput: string | null = null;
+    if (reportType === 'probleme') {
+      priorityInput = body.priorite_sni || body.cuf_13972456 || body.priority || body.priorite || 'moyenne';
+    }
     
     // Messages selon le type de rapport SNI
     // ⚠️ Problème → pb_signales_sni
     // 📊 Avancement → avancees_sni  
     // 📦 Livraison → materiaux_sni
-    const messageContent = 
-      body.pb_signales_sni ||      // Message Problème
-      body.avancees_sni ||         // Message Avancement
-      body.materiaux_sni ||        // Message Livraison
-      body.cuf_13972443 ||         // Fallback ancien format
-      body.cuf_13972454 ||
-      body.cuf_13972475 ||
-      body.message || 
-      body.content || 
-      '';
+    let messageContent = '';
+    if (reportType === 'probleme') {
+      messageContent = body.pb_signales_sni || body.message || body.content || '';
+    } else if (reportType === 'avancement') {
+      messageContent = body.avancees_sni || body.message || body.content || '';
+    } else if (reportType === 'livraison') {
+      messageContent = body.materiaux_sni || body.message || body.content || '';
+    } else {
+      messageContent = body.pb_signales_sni || body.avancees_sni || body.materiaux_sni || body.message || body.content || '';
+    }
     
     // Collecter toutes les photos individuelles
     const allPhotos: string[] = [];
@@ -205,8 +212,9 @@ export async function POST(request: NextRequest) {
 
     // Parser et normaliser les données
     const project = findProject(projectInput);
-    const reportType = findReportType(reportTypeInput);
-    const priority = findPriority(priorityInput);
+    
+    // Priorité : seulement pour les problèmes, sinon null
+    const priority = priorityInput ? findPriority(priorityInput) : null;
 
     // Construire l'objet à insérer
     const messageData = {
