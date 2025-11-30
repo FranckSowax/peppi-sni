@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,19 +10,25 @@ import { Badge } from '@/components/ui/badge';
 import { 
   MessageSquare, 
   Search, 
-  Filter,
   RefreshCw,
   User,
-  Calendar,
   Building2,
   AlertCircle,
   CheckCircle,
   Clock,
-  ChevronDown,
-  ChevronUp
+  Image as ImageIcon,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  TrendingUp,
+  Package,
+  Camera,
+  MessageCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 interface WhatsAppMessage {
   id: string;
@@ -29,81 +36,14 @@ interface WhatsAppMessage {
   sender_phone: string;
   project_id: number | null;
   project_name: string | null;
+  report_type: string | null;
   content: string;
   priority: 'haute' | 'moyenne' | 'basse';
+  photos: string[];
   status: 'nouveau' | 'lu' | 'traite';
   created_at: string;
+  processed_at: string | null;
 }
-
-// Données de démonstration
-const demoMessages: WhatsAppMessage[] = [
-  {
-    id: '1',
-    sender_name: 'Jean Mbourou',
-    sender_phone: '+241 77 12 34 56',
-    project_id: 1,
-    project_name: 'Résidence Les Palmiers',
-    content: 'Bonjour, le béton est arrivé sur le chantier. Nous commençons le coulage du 3ème étage demain matin.',
-    priority: 'haute',
-    status: 'nouveau',
-    created_at: '2024-01-20T08:30:00Z'
-  },
-  {
-    id: '2',
-    sender_name: 'Marie Nguema',
-    sender_phone: '+241 66 98 76 54',
-    project_id: 2,
-    project_name: 'Centre Commercial Oloumi',
-    content: 'Problème avec la livraison des carreaux. Le fournisseur annonce un retard de 2 semaines.',
-    priority: 'haute',
-    status: 'nouveau',
-    created_at: '2024-01-20T09:15:00Z'
-  },
-  {
-    id: '3',
-    sender_name: 'Pierre Ondo',
-    sender_phone: '+241 74 55 66 77',
-    project_id: 3,
-    project_name: 'Logements Sociaux Nzeng-Ayong',
-    content: 'Les travaux de plomberie du bloc A sont terminés. Inspection prévue vendredi.',
-    priority: 'moyenne',
-    status: 'lu',
-    created_at: '2024-01-19T16:45:00Z'
-  },
-  {
-    id: '4',
-    sender_name: 'Sophie Mba',
-    sender_phone: '+241 62 33 44 55',
-    project_id: 1,
-    project_name: 'Résidence Les Palmiers',
-    content: 'Demande de validation pour les modifications électriques du penthouse.',
-    priority: 'moyenne',
-    status: 'traite',
-    created_at: '2024-01-19T14:20:00Z'
-  },
-  {
-    id: '5',
-    sender_name: 'Paul Essono',
-    sender_phone: '+241 77 88 99 00',
-    project_id: 4,
-    project_name: 'Bureaux Ministériels',
-    content: 'RAS sur le chantier. Avancement conforme au planning.',
-    priority: 'basse',
-    status: 'lu',
-    created_at: '2024-01-19T11:00:00Z'
-  },
-  {
-    id: '6',
-    sender_name: 'Alice Obame',
-    sender_phone: '+241 65 11 22 33',
-    project_id: 5,
-    project_name: 'École Primaire Akébé',
-    content: 'Urgent: Fuite d\'eau détectée dans les fondations. Intervention nécessaire.',
-    priority: 'haute',
-    status: 'nouveau',
-    created_at: '2024-01-20T07:00:00Z'
-  },
-];
 
 const priorityConfig = {
   haute: { label: 'Haute', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
@@ -117,13 +57,48 @@ const statusConfig = {
   traite: { label: 'Traité', color: 'bg-green-100 text-green-700' },
 };
 
+const reportTypeConfig: Record<string, { label: string; icon: typeof TrendingUp }> = {
+  avancement: { label: 'Avancement', icon: TrendingUp },
+  probleme: { label: 'Problème', icon: AlertCircle },
+  livraison: { label: 'Livraison', icon: Package },
+  photos: { label: 'Photos', icon: Camera },
+  message: { label: 'Message', icon: MessageCircle },
+};
+
 export default function FeedPage() {
-  const [messages, setMessages] = useState<WhatsAppMessage[]>(demoMessages);
+  const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [expandedMessage, setExpandedMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [filterType, setFilterType] = useState<string>('all');
+  const [selectedMessage, setSelectedMessage] = useState<WhatsAppMessage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  
+  const supabase = createClient();
+
+  useEffect(() => {
+    loadMessages();
+  }, []);
+
+  const loadMessages = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      toast.error('Erreur lors du chargement des messages');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredMessages = messages.filter(msg => {
     const matchesSearch = 
@@ -132,49 +107,96 @@ export default function FeedPage() {
       (msg.project_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPriority = filterPriority === 'all' || msg.priority === filterPriority;
     const matchesStatus = filterStatus === 'all' || msg.status === filterStatus;
-    return matchesSearch && matchesPriority && matchesStatus;
+    const matchesType = filterType === 'all' || msg.report_type === filterType;
+    return matchesSearch && matchesPriority && matchesStatus && matchesType;
   });
 
   const stats = {
     total: messages.length,
     nouveaux: messages.filter(m => m.status === 'nouveau').length,
     haute: messages.filter(m => m.priority === 'haute').length,
+    withPhotos: messages.filter(m => m.photos && m.photos.length > 0).length,
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    loadMessages();
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setMessages(msgs => msgs.map(m => 
-      m.id === id ? { ...m, status: 'lu' as const } : m
-    ));
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('whatsapp_messages')
+        .update({ status: 'lu' })
+        .eq('id', id);
+
+      if (error) throw error;
+      setMessages(msgs => msgs.map(m => 
+        m.id === id ? { ...m, status: 'lu' as const } : m
+      ));
+      toast.success('Message marqué comme lu');
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour');
+    }
   };
 
-  const handleMarkAsProcessed = (id: string) => {
-    setMessages(msgs => msgs.map(m => 
-      m.id === id ? { ...m, status: 'traite' as const } : m
-    ));
+  const handleMarkAsProcessed = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('whatsapp_messages')
+        .update({ status: 'traite', processed_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+      setMessages(msgs => msgs.map(m => 
+        m.id === id ? { ...m, status: 'traite' as const } : m
+      ));
+      toast.success('Message marqué comme traité');
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour');
+    }
   };
+
+  const openLightbox = (photos: string[], index: number) => {
+    setLightboxImage(photos[index]);
+    setLightboxIndex(index);
+  };
+
+  const navigateLightbox = (direction: 'prev' | 'next', photos: string[]) => {
+    const newIndex = direction === 'prev' 
+      ? (lightboxIndex - 1 + photos.length) % photos.length
+      : (lightboxIndex + 1) % photos.length;
+    setLightboxIndex(newIndex);
+    setLightboxImage(photos[newIndex]);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <DashboardHeader title="Feed WhatsApp" subtitle="Chargement..." />
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DashboardHeader 
         title="Feed WhatsApp" 
-        subtitle="Messages du chatbot et communications terrain" 
+        subtitle="Messages du chatbot ManyChat et communications terrain" 
       />
       
       <main className="p-6">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total messages</p>
+                <p className="text-sm text-gray-500">Total</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
             </CardContent>
@@ -201,6 +223,17 @@ export default function FeedPage() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Avec photos</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.withPhotos}</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filtres */}
@@ -217,6 +250,18 @@ export default function FeedPage() {
                 />
               </div>
               
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="all">Tous types</option>
+                <option value="avancement">📊 Avancement</option>
+                <option value="probleme">⚠️ Problème</option>
+                <option value="livraison">📦 Livraison</option>
+                <option value="photos">📸 Photos</option>
+              </select>
+
               <select
                 value={filterPriority}
                 onChange={(e) => setFilterPriority(e.target.value)}
@@ -239,142 +284,240 @@ export default function FeedPage() {
                 <option value="traite">Traité</option>
               </select>
 
-              <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-                <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+              <Button variant="outline" onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Actualiser
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Liste des messages */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left p-4 font-medium text-gray-600 w-36">Date</th>
-                    <th className="text-left p-4 font-medium text-gray-600 w-40">Expéditeur</th>
-                    <th className="text-left p-4 font-medium text-gray-600 w-48">Projet</th>
-                    <th className="text-left p-4 font-medium text-gray-600">Message</th>
-                    <th className="text-left p-4 font-medium text-gray-600 w-28">Priorité</th>
-                    <th className="text-left p-4 font-medium text-gray-600 w-28">Statut</th>
-                    <th className="text-left p-4 font-medium text-gray-600 w-32">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMessages.map((msg) => {
-                    const priority = priorityConfig[msg.priority];
-                    const status = statusConfig[msg.status];
-                    const PriorityIcon = priority.icon;
-                    const isExpanded = expandedMessage === msg.id;
+        {/* Liste des messages - Format Cards */}
+        <div className="space-y-4">
+          {filteredMessages.map((msg) => {
+            const priority = priorityConfig[msg.priority] || priorityConfig.moyenne;
+            const status = statusConfig[msg.status] || statusConfig.nouveau;
+            const reportType = msg.report_type ? reportTypeConfig[msg.report_type] : null;
+            const PriorityIcon = priority.icon;
+            const ReportIcon = reportType?.icon || MessageCircle;
+            const hasPhotos = msg.photos && msg.photos.length > 0;
 
-                    return (
-                      <tr 
-                        key={msg.id} 
-                        className={cn(
-                          "border-b last:border-0 hover:bg-gray-50 transition-colors",
-                          msg.status === 'nouveau' && "bg-blue-50/50"
-                        )}
-                      >
-                        <td className="p-4">
-                          <div className="text-sm">
-                            <p className="font-medium">
-                              {new Date(msg.created_at).toLocaleDateString('fr-FR')}
-                            </p>
-                            <p className="text-gray-500 text-xs">
-                              {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="p-4">
+            return (
+              <Card 
+                key={msg.id}
+                className={cn(
+                  "overflow-hidden transition-all hover:shadow-lg",
+                  msg.status === 'nouveau' && msg.priority === 'haute' && "border-l-4 border-l-red-500",
+                  msg.status === 'nouveau' && msg.priority !== 'haute' && "border-l-4 border-l-blue-500"
+                )}
+              >
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    {/* Avatar */}
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-6 h-6 text-green-600" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div>
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                              <User className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-sm">{msg.sender_name}</p>
-                              <p className="text-xs text-gray-500">{msg.sender_phone}</p>
-                            </div>
+                            <h3 className="font-semibold">{msg.sender_name}</h3>
+                            <span className="text-sm text-gray-500">{msg.sender_phone}</span>
                           </div>
-                        </td>
-                        <td className="p-4">
-                          {msg.project_name ? (
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm">{msg.project_name}</span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
+                          <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(msg.created_at).toLocaleDateString('fr-FR')} à {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {msg.project_name && (
+                              <span className="flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {msg.project_name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {reportType && (
+                            <Badge variant="outline" className="text-xs">
+                              <ReportIcon className="w-3 h-3 mr-1" />
+                              {reportType.label}
+                            </Badge>
                           )}
-                        </td>
-                        <td className="p-4">
-                          <p className={cn(
-                            "text-sm",
-                            isExpanded ? "" : "line-clamp-2"
-                          )}>
-                            {msg.content}
-                          </p>
-                          {msg.content.length > 100 && (
-                            <button
-                              onClick={() => setExpandedMessage(isExpanded ? null : msg.id)}
-                              className="text-xs text-primary hover:underline mt-1"
-                            >
-                              {isExpanded ? 'Réduire' : 'Voir plus'}
-                            </button>
-                          )}
-                        </td>
-                        <td className="p-4">
                           <Badge className={cn('border', priority.color)}>
                             <PriorityIcon className="w-3 h-3 mr-1" />
                             {priority.label}
                           </Badge>
-                        </td>
-                        <td className="p-4">
                           <Badge className={status.color}>
                             {status.label}
                           </Badge>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex gap-1">
-                            {msg.status === 'nouveau' && (
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => handleMarkAsRead(msg.id)}
-                              >
-                                Lu
-                              </Button>
-                            )}
-                            {msg.status !== 'traite' && (
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="text-green-600"
-                                onClick={() => handleMarkAsProcessed(msg.id)}
-                              >
-                                ✓
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
 
-            {filteredMessages.length === 0 && (
-              <div className="text-center py-12">
-                <MessageSquare className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">Aucun message trouvé</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      {/* Message Content */}
+                      <p className="text-gray-700 mb-3">{msg.content}</p>
+
+                      {/* Photos Grid */}
+                      {hasPhotos && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
+                            <ImageIcon className="w-4 h-4" />
+                            {msg.photos.length} photo(s) jointe(s)
+                          </p>
+                          <div className="flex gap-2 flex-wrap">
+                            {msg.photos.map((photo, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => openLightbox(msg.photos, idx)}
+                                className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary transition-colors group"
+                              >
+                                <Image
+                                  src={photo}
+                                  alt={`Photo ${idx + 1}`}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <ImageIcon className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-3 border-t">
+                        {msg.status === 'nouveau' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleMarkAsRead(msg.id)}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Marquer comme lu
+                          </Button>
+                        )}
+                        {msg.status !== 'traite' && (
+                          <Button 
+                            size="sm" 
+                            variant="default"
+                            onClick={() => handleMarkAsProcessed(msg.id)}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Traiter
+                          </Button>
+                        )}
+                        {hasPhotos && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => openLightbox(msg.photos, 0)}
+                          >
+                            <ImageIcon className="w-4 h-4 mr-1" />
+                            Voir les photos
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+
+          {filteredMessages.length === 0 && (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <MessageSquare className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600">Aucun message</h3>
+                <p className="text-gray-500">Les messages WhatsApp apparaîtront ici</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </main>
+
+      {/* Lightbox pour les photos */}
+      {lightboxImage && selectedMessage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white hover:text-gray-300"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          
+          {selectedMessage.photos.length > 1 && (
+            <>
+              <button
+                className="absolute left-4 text-white hover:text-gray-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateLightbox('prev', selectedMessage.photos);
+                }}
+              >
+                <ChevronLeft className="w-12 h-12" />
+              </button>
+              <button
+                className="absolute right-4 text-white hover:text-gray-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateLightbox('next', selectedMessage.photos);
+                }}
+              >
+                <ChevronRight className="w-12 h-12" />
+              </button>
+            </>
+          )}
+
+          <div className="relative max-w-4xl max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={lightboxImage}
+              alt="Photo agrandie"
+              width={800}
+              height={600}
+              className="object-contain max-h-[80vh]"
+              unoptimized
+            />
+            <p className="text-white text-center mt-4">
+              {lightboxIndex + 1} / {selectedMessage.photos.length}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox simple sans selectedMessage */}
+      {lightboxImage && !selectedMessage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white hover:text-gray-300"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <div className="relative max-w-4xl max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={lightboxImage}
+              alt="Photo agrandie"
+              width={800}
+              height={600}
+              className="object-contain max-h-[80vh]"
+              unoptimized
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
