@@ -1,27 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier les variables d'environnement
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase credentials');
+      return NextResponse.json({ 
+        error: 'Configuration Supabase manquante',
+        details: { hasUrl: !!supabaseUrl, hasKey: !!supabaseKey }
+      }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const taskId = formData.get('taskId') as string;
     const chantierId = formData.get('chantierId') as string;
-    const caption = formData.get('caption') as string || '';
     const takenBy = formData.get('takenBy') as string || 'Technicien';
 
     if (!file) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
     }
 
+    console.log('Upload request:', { 
+      fileName: file.name, 
+      fileType: file.type, 
+      fileSize: file.size,
+      taskId, 
+      chantierId 
+    });
+
     // Générer un nom de fichier unique
     const timestamp = Date.now();
-    const extension = file.name.split('.').pop() || 'jpg';
-    const fileName = `chantier-${chantierId}/task-${taskId}/${timestamp}.${extension}`;
+    const randomId = Math.random().toString(36).substring(7);
+    const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const fileName = `${chantierId || 'unknown'}/${taskId || 'general'}/${timestamp}-${randomId}.${extension}`;
 
     // Convertir le fichier en ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
@@ -31,13 +49,16 @@ export async function POST(request: NextRequest) {
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('chantier-photos')
       .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
+        contentType: file.type || 'image/jpeg',
+        upsert: true, // Permettre l'écrasement si le fichier existe
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      return NextResponse.json({ error: 'Erreur lors de l\'upload' }, { status: 500 });
+      console.error('Supabase upload error:', uploadError);
+      return NextResponse.json({ 
+        error: 'Erreur upload Supabase',
+        details: uploadError.message 
+      }, { status: 500 });
     }
 
     // Obtenir l'URL publique
@@ -46,59 +67,34 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fileName);
 
     const photoUrl = urlData.publicUrl;
+    console.log('Photo uploaded successfully:', photoUrl);
 
-    // Enregistrer dans la table chantier_photos
-    const { data: photoRecord, error: dbError } = await supabase
-      .from('chantier_photos')
-      .insert({
-        task_id: taskId ? parseInt(taskId) : null,
-        chantier_id: chantierId ? parseInt(chantierId) : null,
-        url: photoUrl,
-        caption: caption,
-        taken_by: takenBy,
-      })
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error('Database error:', dbError);
-      // L'upload a réussi mais pas l'enregistrement en DB
-      return NextResponse.json({
-        success: true,
-        url: photoUrl,
-        warning: 'Photo uploadée mais non enregistrée en base',
-      });
-    }
-
-    // Mettre à jour le compteur de photos dans la tâche si taskId fourni
-    if (taskId) {
-      const { data: task } = await supabase
-        .from('chantier_tasks')
-        .select('photos')
-        .eq('id', parseInt(taskId))
-        .single();
-
-      if (task) {
-        const currentPhotos = task.photos || [];
-        await supabase
-          .from('chantier_tasks')
-          .update({
-            photos: [...currentPhotos, photoUrl],
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', parseInt(taskId));
-      }
+    // Essayer d'enregistrer dans la table (optionnel, ne bloque pas si erreur)
+    try {
+      await supabase
+        .from('chantier_photos')
+        .insert({
+          task_id: taskId && !isNaN(parseInt(taskId)) ? parseInt(taskId) : null,
+          chantier_id: chantierId && !isNaN(parseInt(chantierId)) ? parseInt(chantierId) : null,
+          url: photoUrl,
+          taken_by: takenBy,
+        });
+    } catch (dbErr) {
+      console.warn('Could not save to DB (non-blocking):', dbErr);
     }
 
     return NextResponse.json({
       success: true,
-      photo: photoRecord,
       url: photoUrl,
+      fileName: fileName,
     });
 
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Erreur serveur',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -107,6 +103,15 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const chantierId = searchParams.get('chantierId');
   const taskId = searchParams.get('taskId');
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: 'Configuration manquante' }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     let query = supabase.from('chantier_photos').select('*');

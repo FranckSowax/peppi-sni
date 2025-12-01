@@ -761,6 +761,7 @@ export default function ChantierPage() {
                       onProgressChange={(val) => updateTaskProgress(serie.id, task.id, val)}
                       onPhotoUploaded={(url) => addPhotoUrl(serie.id, task.id, url)}
                       onDelete={() => deleteTask(serie.id, task.id)}
+                      onUpdate={(updates) => updateTask(serie.id, task.id, updates)}
                     />
                   ))}
                   
@@ -955,22 +956,39 @@ export default function ChantierPage() {
 
 // --- COMPOSANTS AUXILIAIRES ---
 
-function TaskRow({ task, chantierId, onProgressChange, onPhotoUploaded, onDelete }: { 
+function TaskRow({ task, chantierId, onProgressChange, onPhotoUploaded, onDelete, onUpdate }: { 
   task: Task;
   chantierId: number;
   onProgressChange: (val: number) => void;
   onPhotoUploaded: (url: string) => void;
   onDelete: () => void;
+  onUpdate: (updates: Partial<Task>) => void;
 }) {
   const [val, setVal] = useState(task.done);
   const [uploading, setUploading] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(task.name);
+  const [editUnit, setEditUnit] = useState(task.unit);
+  const [editTarget, setEditTarget] = useState(task.target);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleChange = (newVal: number) => {
     setVal(newVal);
     onProgressChange(newVal);
+  };
+
+  const saveEdit = () => {
+    onUpdate({ name: editName, unit: editUnit, target: editTarget });
+    setIsEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setEditName(task.name);
+    setEditUnit(task.unit);
+    setEditTarget(task.target);
+    setIsEditing(false);
   };
 
   const getProgressColor = (v: number) => {
@@ -1031,87 +1049,151 @@ function TaskRow({ task, chantierId, onProgressChange, onPhotoUploaded, onDelete
   return (
     <>
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          
-          {/* Info Tâche */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+        {isEditing ? (
+          // Mode édition
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">#{task.id}</span>
-              <h4 className="font-semibold text-slate-800 truncate">{task.name}</h4>
+              <span className="text-xs text-blue-600 font-medium">Mode édition</span>
             </div>
-            <div className="text-xs text-slate-500">Unité: {task.unit} • Objectif: {task.target}</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2">
+                <label className="text-xs text-slate-500 mb-1 block">Nom de la tâche</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Unité</label>
+                  <select
+                    value={editUnit}
+                    onChange={(e) => setEditUnit(e.target.value)}
+                    className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm"
+                  >
+                    {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Objectif</label>
+                  <input
+                    type="number"
+                    value={editTarget}
+                    onChange={(e) => setEditTarget(parseInt(e.target.value) || 100)}
+                    className="w-full px-2 py-2 border border-slate-200 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={cancelEdit}
+                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveEdit}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Enregistrer
+              </button>
+            </div>
           </div>
-
-          {/* Slider d'avancement */}
-          <div className="flex-1 w-full lg:max-w-xs">
-            <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
-              <span>Avancement</span>
-              <span className={cn(
-                val === 100 ? "text-emerald-600" : val >= 50 ? "text-blue-600" : "text-slate-600"
-              )}>{val}%</span>
+        ) : (
+          // Mode affichage
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            
+            {/* Info Tâche */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">#{task.id}</span>
+                <h4 className="font-semibold text-slate-800 truncate">{task.name}</h4>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-600"
+                  title="Modifier"
+                >
+                  <Edit3 size={14} />
+                </button>
+              </div>
+              <div className="text-xs text-slate-500">Unité: {task.unit} • Objectif: {task.target}</div>
             </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
-              step="5"
-              value={val} 
-              onChange={(e) => handleChange(parseInt(e.target.value))}
-              className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
-              <div 
-                className={cn("h-full transition-all duration-300", getProgressColor(val))} 
-                style={{width: `${val}%`}}
+
+            {/* Slider d'avancement */}
+            <div className="flex-1 w-full lg:max-w-xs">
+              <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+                <span>Avancement</span>
+                <span className={cn(
+                  val === 100 ? "text-emerald-600" : val >= 50 ? "text-blue-600" : "text-slate-600"
+                )}>{val}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                step="5"
+                value={val} 
+                onChange={(e) => handleChange(parseInt(e.target.value))}
+                className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
+              <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                <div 
+                  className={cn("h-full transition-all duration-300", getProgressColor(val))} 
+                  style={{width: `${val}%`}}
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className={cn(
+                  "p-3 rounded-lg border flex items-center gap-2 transition-colors",
+                  task.photos > 0 
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-500',
+                  uploading && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+                <span className="text-xs font-bold">{task.photos > 0 ? `${task.photos}` : '+'}</span>
+              </button>
+              
+              {val === 100 ? (
+                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 size={24} />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+                  <span className="text-xs font-bold">{val}%</span>
+                </div>
+              )}
+              
+              {/* Bouton supprimer */}
+              <button
+                onClick={onDelete}
+                className="p-2 hover:bg-red-100 rounded-lg text-red-400 hover:text-red-600 transition-colors"
+                title="Supprimer"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className={cn(
-                "p-3 rounded-lg border flex items-center gap-2 transition-colors",
-                task.photos > 0 
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-                  : 'border-slate-200 hover:bg-slate-50 text-slate-500',
-                uploading && 'opacity-50 cursor-not-allowed'
-              )}
-            >
-              {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
-              <span className="text-xs font-bold">{task.photos > 0 ? `${task.photos}` : '+'}</span>
-            </button>
-            
-            {val === 100 ? (
-              <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 size={24} />
-              </div>
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
-                <span className="text-xs font-bold">{val}%</span>
-              </div>
-            )}
-            
-            {/* Bouton supprimer */}
-            <button
-              onClick={onDelete}
-              className="p-2 hover:bg-red-100 rounded-lg text-red-400 hover:text-red-600 transition-colors"
-              title="Supprimer"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Miniatures des photos existantes */}
         {task.photoUrls && task.photoUrls.length > 0 && (
