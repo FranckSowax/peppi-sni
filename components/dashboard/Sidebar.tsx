@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   FileText,
   Megaphone,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
@@ -52,6 +53,7 @@ const mainNavItems: NavItem[] = [
 // Outils & Rapports
 const toolsNavItems: NavItem[] = [
   { title: 'Feed WhatsApp', href: '/dashboard/feed', icon: <MessageSquare className="w-5 h-5" /> },
+  { title: 'Rapports IA', href: '/dashboard/rapports', icon: <ClipboardList className="w-5 h-5" /> },
   { title: 'Alertes', href: '/dashboard/alertes', icon: <AlertTriangle className="w-5 h-5" /> },
   { title: 'Courrier', href: '/dashboard/courrier', icon: <FileText className="w-5 h-5" /> },
   { title: 'Marketing', href: '/dashboard/marketing', icon: <Megaphone className="w-5 h-5" /> },
