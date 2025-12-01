@@ -68,12 +68,12 @@ const statusConfig = {
   traite: { label: 'Traité', color: 'bg-green-100 text-green-700' },
 };
 
-const reportTypeConfig: Record<string, { label: string; icon: typeof TrendingUp }> = {
-  avancement: { label: 'Avancement', icon: TrendingUp },
-  probleme: { label: 'Problème', icon: AlertCircle },
-  livraison: { label: 'Livraison', icon: Package },
-  photos: { label: 'Photos', icon: Camera },
-  message: { label: 'Message', icon: MessageCircle },
+const reportTypeConfig: Record<string, { label: string; icon: typeof TrendingUp; color: string }> = {
+  avancement: { label: 'Avancement', icon: TrendingUp, color: 'bg-green-100 text-green-700 border-green-200' },
+  probleme: { label: 'Problème', icon: AlertCircle, color: 'bg-red-100 text-red-700 border-red-200' },
+  livraison: { label: 'Livraison', icon: Package, color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  photos: { label: 'Photos', icon: Camera, color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  message: { label: 'Message', icon: MessageCircle, color: 'bg-gray-100 text-gray-700 border-gray-200' },
 };
 
 export default function FeedPage() {
@@ -354,15 +354,16 @@ export default function FeedPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* Badge Type avec couleur distincte */}
                           {reportType && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge className={cn('border', reportType.color)}>
                               <ReportIcon className="w-3 h-3 mr-1" />
                               {reportType.label}
                             </Badge>
                           )}
                           {/* Priorité affichée uniquement pour les problèmes */}
                           {isProbleme && msg.priority && priorityStyle && (
-                            <Badge className={cn('border', priorityStyle.color)}>
+                            <Badge variant="outline" className={cn('border', priorityStyle.color)}>
                               <PriorityIcon className="w-3 h-3 mr-1" />
                               {msg.priority}
                             </Badge>
