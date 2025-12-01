@@ -483,30 +483,19 @@ export default function ChantierPage() {
               <h2 className="text-xl font-bold text-gray-800 mb-1">Sélectionnez un chantier</h2>
               <p className="text-gray-500">Cliquez sur une carte pour accéder au suivi détaillé</p>
             </div>
-            <div className="flex gap-3">
-              <Link 
-                href="/chantier-mobile" 
-                target="_blank"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Smartphone className="w-4 h-4" />
-                Mode Technicien
-                <ExternalLink className="w-3 h-3" />
-              </Link>
-              <Button
-                variant="outline"
-                onClick={() => setShowAlertsPanel(true)}
-                className="relative"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                Alertes
-                {alerts.filter(a => !a.resolved).length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {alerts.filter(a => !a.resolved).length}
-                  </span>
-                )}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowAlertsPanel(true)}
+              className="relative"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Alertes
+              {alerts.filter(a => !a.resolved).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {alerts.filter(a => !a.resolved).length}
+                </span>
+              )}
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -515,42 +504,72 @@ export default function ChantierPage() {
               return (
                 <Card 
                   key={chantier.id}
-                  className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-l-4"
+                  className="hover:shadow-lg transition-all border-l-4 overflow-hidden"
                   style={{ borderLeftColor: chantier.status === 'delayed' ? '#ef4444' : chantier.status === 'ahead' ? '#3b82f6' : '#22c55e' }}
-                  onClick={() => setSelectedChantier(chantier)}
                 >
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-800">{chantier.name}</h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <Map className="w-3 h-3" /> {chantier.location}
-                        </p>
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => setSelectedChantier(chantier)}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-bold text-lg text-gray-800">{chantier.name}</h3>
+                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                            <Map className="w-3 h-3" /> {chantier.location}
+                          </p>
+                        </div>
+                        <Badge className={status.color}>{status.label}</Badge>
                       </div>
-                      <Badge className={status.color}>{status.label}</Badge>
-                    </div>
 
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Avancement global</span>
-                        <span className="font-bold">{chantier.progress}%</span>
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Avancement global</span>
+                          <span className="font-bold">{chantier.progress}%</span>
+                        </div>
+                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              chantier.progress >= 80 ? "bg-green-500" :
+                              chantier.progress >= 50 ? "bg-blue-500" :
+                              chantier.progress >= 30 ? "bg-amber-500" : "bg-red-500"
+                            )}
+                            style={{ width: `${chantier.progress}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            chantier.progress >= 80 ? "bg-green-500" :
-                            chantier.progress >= 50 ? "bg-blue-500" :
-                            chantier.progress >= 30 ? "bg-amber-500" : "bg-red-500"
-                          )}
-                          style={{ width: `${chantier.progress}%` }}
-                        />
+
+                      <div className="flex items-center justify-between text-sm mb-4">
+                        <span className="text-gray-500">Chef: {chantier.chef}</span>
+                        <span className="text-gray-400">{chantier.lastUpdate}</span>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Chef: {chantier.chef}</span>
-                      <span className="text-gray-400">{chantier.lastUpdate}</span>
+                    
+                    {/* Boutons d'action */}
+                    <div className="flex gap-2 pt-3 border-t border-gray-100">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setSelectedChantier(chantier)}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Gérer
+                      </Button>
+                      <Link 
+                        href={`/chantier-mobile?id=${chantier.id}&name=${encodeURIComponent(chantier.name)}`}
+                        target="_blank"
+                        className="flex-1"
+                      >
+                        <Button
+                          size="sm"
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Smartphone className="w-4 h-4 mr-2" />
+                          Technicien
+                        </Button>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>

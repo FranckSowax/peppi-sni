@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   Camera, 
   CheckCircle2, 
@@ -8,7 +9,6 @@ import {
   ChevronRight,
   Hammer,
   Map,
-  Save,
   Loader2,
   X,
   Upload,
@@ -18,7 +18,8 @@ import {
   Plus,
   AlertCircle,
   Clock,
-  Send
+  Send,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast, Toaster } from 'sonner';
@@ -65,35 +66,145 @@ interface Alert {
   resolved: boolean;
 }
 
-// Données de démonstration
-const DEMO_CHANTIERS: Chantier[] = [
-  { id: 1, name: 'Estuaire 1 - Lot 375', location: 'Libreville', progress: 45, status: 'on_track', chef: 'Jean Mbourou' },
-  { id: 2, name: 'Résidence Okoumé', location: 'Owendo', progress: 75, status: 'on_track', chef: 'Marie Ndong' },
-];
-
-const DEMO_SERIES: Serie[] = [
-  {
-    id: "200",
-    title: "GROS ŒUVRE",
-    progress: 45,
-    tasks: [
-      { id: "201", name: "Fouilles pour semelles", unit: "m3", done: 100, target: 100, photos: 3 },
-      { id: "202", name: "Béton de propreté", unit: "m3", done: 100, target: 100, photos: 1 },
-      { id: "203", name: "Semelles filantes BA", unit: "m3", done: 85, target: 100, photos: 2 },
-      { id: "204", name: "Soubassement agglos 15cm", unit: "m2", done: 40, target: 100, photos: 1, hasAlert: true, alertMessage: "Manque de parpaings" },
-      { id: "205", name: "Prépoteaux BA", unit: "m3", done: 30, target: 100, photos: 0 },
+// Données de démonstration par projet
+const CHANTIERS_DATA: Record<number, { chantier: Chantier; series: Serie[] }> = {
+  1: {
+    chantier: { id: 1, name: 'Estuaire 1 - Lot 375', location: 'Libreville', progress: 45, status: 'on_track', chef: 'Jean Mbourou' },
+    series: [
+      {
+        id: "100",
+        title: "INSTALLATIONS DE CHANTIER",
+        progress: 100,
+        tasks: [
+          { id: "101", name: "Installation de chantier", unit: "ff", done: 100, target: 100, photos: 2 },
+        ]
+      },
+      {
+        id: "200",
+        title: "GROS ŒUVRE",
+        progress: 45,
+        tasks: [
+          { id: "201", name: "Fouilles pour semelles", unit: "m3", done: 100, target: 100, photos: 3 },
+          { id: "202", name: "Béton de propreté", unit: "m3", done: 100, target: 100, photos: 1 },
+          { id: "203", name: "Semelles filantes BA", unit: "m3", done: 85, target: 100, photos: 2 },
+          { id: "204", name: "Soubassement agglos 15cm", unit: "m2", done: 40, target: 100, photos: 1, hasAlert: true, alertMessage: "Manque de parpaings" },
+          { id: "205", name: "Prépoteaux BA", unit: "m3", done: 30, target: 100, photos: 0 },
+          { id: "206", name: "Remblai compacté", unit: "m3", done: 20, target: 100, photos: 0 },
+          { id: "207", name: "Film polyane", unit: "m2", done: 0, target: 100, photos: 0 },
+          { id: "208", name: "Dallage BA ép. 12cm", unit: "m3", done: 0, target: 100, photos: 0 },
+        ]
+      },
+      {
+        id: "300",
+        title: "CHARPENTE & COUVERTURE",
+        progress: 0,
+        tasks: [
+          { id: "301", name: "Fermes en bois traité", unit: "U", done: 0, target: 15, photos: 0 },
+          { id: "302", name: "Pannes et chevrons", unit: "ml", done: 0, target: 200, photos: 0 },
+          { id: "303", name: "Couverture tôles", unit: "m2", done: 0, target: 150, photos: 0 },
+        ]
+      },
     ]
   },
-  {
-    id: "300",
-    title: "CHARPENTE & COUVERTURE",
-    progress: 0,
-    tasks: [
-      { id: "301", name: "Fermes en bois traité", unit: "U", done: 0, target: 15, photos: 0 },
-      { id: "302", name: "Pannes et chevrons", unit: "ml", done: 0, target: 200, photos: 0 },
+  2: {
+    chantier: { id: 2, name: 'Résidence Okoumé', location: 'Owendo', progress: 75, status: 'on_track', chef: 'Marie Ndong' },
+    series: [
+      {
+        id: "200",
+        title: "GROS ŒUVRE",
+        progress: 100,
+        tasks: [
+          { id: "201", name: "Fouilles", unit: "m3", done: 100, target: 100, photos: 5 },
+          { id: "202", name: "Fondations", unit: "m3", done: 100, target: 100, photos: 4 },
+          { id: "203", name: "Élévations", unit: "m2", done: 100, target: 100, photos: 6 },
+        ]
+      },
+      {
+        id: "400",
+        title: "MENUISERIE",
+        progress: 60,
+        tasks: [
+          { id: "401", name: "Portes intérieures", unit: "U", done: 80, target: 100, photos: 2 },
+          { id: "402", name: "Fenêtres alu", unit: "U", done: 60, target: 100, photos: 1 },
+          { id: "403", name: "Placards", unit: "U", done: 40, target: 100, photos: 0 },
+        ]
+      },
+      {
+        id: "500",
+        title: "ÉLECTRICITÉ",
+        progress: 50,
+        tasks: [
+          { id: "501", name: "Câblage", unit: "ml", done: 70, target: 100, photos: 1 },
+          { id: "502", name: "Tableau électrique", unit: "U", done: 50, target: 100, photos: 0 },
+          { id: "503", name: "Prises et interrupteurs", unit: "U", done: 30, target: 100, photos: 0 },
+        ]
+      },
     ]
   },
-];
+  3: {
+    chantier: { id: 3, name: 'Marina Bay Phase 2', location: 'Port-Gentil', progress: 32, status: 'delayed', chef: 'Pierre Ondo' },
+    series: [
+      {
+        id: "200",
+        title: "GROS ŒUVRE",
+        progress: 32,
+        tasks: [
+          { id: "201", name: "Terrassement", unit: "m3", done: 100, target: 100, photos: 3 },
+          { id: "202", name: "Fondations profondes", unit: "ml", done: 50, target: 100, photos: 2, hasAlert: true, alertMessage: "Retard livraison béton" },
+          { id: "203", name: "Radier", unit: "m2", done: 0, target: 100, photos: 0 },
+        ]
+      },
+    ]
+  },
+  4: {
+    chantier: { id: 4, name: 'Logements Sociaux Ntoum', location: 'Ntoum', progress: 60, status: 'ahead', chef: 'Sophie Ella' },
+    series: [
+      {
+        id: "200",
+        title: "GROS ŒUVRE",
+        progress: 90,
+        tasks: [
+          { id: "201", name: "Fondations", unit: "m3", done: 100, target: 100, photos: 4 },
+          { id: "202", name: "Élévations RDC", unit: "m2", done: 100, target: 100, photos: 5 },
+          { id: "203", name: "Dalle haute", unit: "m2", done: 70, target: 100, photos: 2 },
+        ]
+      },
+      {
+        id: "300",
+        title: "TOITURE",
+        progress: 30,
+        tasks: [
+          { id: "301", name: "Charpente", unit: "m2", done: 50, target: 100, photos: 1 },
+          { id: "302", name: "Couverture", unit: "m2", done: 10, target: 100, photos: 0 },
+        ]
+      },
+    ]
+  },
+  5: {
+    chantier: { id: 5, name: 'Centre Commercial Akanda', location: 'Akanda', progress: 90, status: 'on_track', chef: 'Paul Nzeng' },
+    series: [
+      {
+        id: "200",
+        title: "STRUCTURE",
+        progress: 100,
+        tasks: [
+          { id: "201", name: "Ossature métallique", unit: "T", done: 100, target: 100, photos: 8 },
+          { id: "202", name: "Planchers collaborants", unit: "m2", done: 100, target: 100, photos: 5 },
+        ]
+      },
+      {
+        id: "600",
+        title: "FINITIONS",
+        progress: 80,
+        tasks: [
+          { id: "601", name: "Cloisons", unit: "m2", done: 90, target: 100, photos: 3 },
+          { id: "602", name: "Faux plafonds", unit: "m2", done: 80, target: 100, photos: 2 },
+          { id: "603", name: "Peinture", unit: "m2", done: 70, target: 100, photos: 1 },
+        ]
+      },
+    ]
+  },
+};
 
 const ALERT_TYPES = [
   { value: 'blocage', label: 'Point bloquant', icon: AlertCircle, color: 'text-red-500' },
@@ -102,11 +213,14 @@ const ALERT_TYPES = [
   { value: 'securite', label: 'Sécurité', icon: AlertTriangle, color: 'text-red-600' },
 ];
 
-export default function ChantierMobilePage() {
-  const [activeTab, setActiveTab] = useState<'chantiers' | 'taches' | 'alertes' | 'profil'>('chantiers');
+function ChantierMobileContent() {
+  const searchParams = useSearchParams();
+  const chantierIdParam = searchParams.get('id');
+  
+  const [activeTab, setActiveTab] = useState<'taches' | 'alertes' | 'profil'>('taches');
   const [selectedChantier, setSelectedChantier] = useState<Chantier | null>(null);
   const [selectedSerie, setSelectedSerie] = useState<Serie | null>(null);
-  const [series, setSeries] = useState<Serie[]>(DEMO_SERIES);
+  const [series, setSeries] = useState<Serie[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertTask, setAlertTask] = useState<Task | null>(null);
@@ -116,6 +230,18 @@ export default function ChantierMobilePage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoTask, setPhotoTask] = useState<Task | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Charger les données du chantier depuis l'URL
+  useEffect(() => {
+    if (chantierIdParam) {
+      const id = parseInt(chantierIdParam);
+      const data = CHANTIERS_DATA[id];
+      if (data) {
+        setSelectedChantier(data.chantier);
+        setSeries(data.series);
+      }
+    }
+  }, [chantierIdParam]);
 
   // Mettre à jour l'avancement d'une tâche
   const updateTaskProgress = (serieId: string, taskId: string, newValue: number) => {
@@ -209,75 +335,18 @@ export default function ChantierMobilePage() {
     }
   };
 
-  // Vue Liste des Chantiers
-  const ChantiersView = () => (
-    <div className="p-4 pb-24">
-      <h1 className="text-2xl font-bold text-slate-800 mb-2">Mes Chantiers</h1>
-      <p className="text-slate-500 mb-6">Sélectionnez un chantier pour commencer</p>
-      
-      <div className="space-y-4">
-        {DEMO_CHANTIERS.map(chantier => (
-          <div 
-            key={chantier.id}
-            onClick={() => {
-              setSelectedChantier(chantier);
-              setActiveTab('taches');
-            }}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="font-bold text-lg text-slate-800">{chantier.name}</h3>
-                <p className="text-sm text-slate-500 flex items-center gap-1">
-                  <Map className="w-3 h-3" /> {chantier.location}
-                </p>
-              </div>
-              <ChevronRight className="text-slate-400" />
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
-                    className={cn(
-                      "h-full rounded-full transition-all",
-                      chantier.progress >= 80 ? "bg-emerald-500" :
-                      chantier.progress >= 50 ? "bg-blue-500" : "bg-amber-500"
-                    )}
-                    style={{ width: `${chantier.progress}%` }}
-                  />
-                </div>
-              </div>
-              <span className="text-lg font-bold text-slate-700">{chantier.progress}%</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   // Vue Tâches
   const TachesView = () => (
     <div className="p-4 pb-24">
-      {selectedChantier && (
+      {!selectedChantier ? (
+        // Message si pas de chantier sélectionné
+        <div className="text-center py-12">
+          <Hammer className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-600 mb-2">Aucun chantier sélectionné</h2>
+          <p className="text-slate-500">Ouvrez cette page depuis le dashboard pour accéder aux tâches</p>
+        </div>
+      ) : (
         <>
-          <div className="flex items-center gap-3 mb-4">
-            <button 
-              onClick={() => {
-                setSelectedChantier(null);
-                setSelectedSerie(null);
-                setActiveTab('chantiers');
-              }}
-              className="p-2 rounded-full bg-slate-100"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">{selectedChantier.name}</h1>
-              <p className="text-sm text-slate-500">{selectedChantier.location}</p>
-            </div>
-          </div>
-          
           {!selectedSerie ? (
             // Liste des séries
             <div className="space-y-3">
@@ -437,12 +506,16 @@ export default function ChantierMobilePage() {
           <div className="flex items-center gap-3">
             <Hammer className="w-8 h-8" />
             <div>
-              <h1 className="text-xl font-bold">PEPPI Chantier</h1>
-              <p className="text-blue-200 text-sm">Mode Technicien</p>
+              <h1 className="text-xl font-bold">
+                {selectedChantier ? selectedChantier.name : 'PEPPI Chantier'}
+              </h1>
+              <p className="text-blue-200 text-sm">
+                {selectedChantier ? `${selectedChantier.location} • ${selectedChantier.chef}` : 'Mode Technicien'}
+              </p>
             </div>
           </div>
           <div className="relative">
-            <Bell className="w-6 h-6" />
+            <Bell className="w-6 h-6" onClick={() => setActiveTab('alertes')} />
             {alerts.filter(a => !a.resolved).length > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center">
                 {alerts.filter(a => !a.resolved).length}
@@ -450,11 +523,26 @@ export default function ChantierMobilePage() {
             )}
           </div>
         </div>
+        
+        {/* Barre de progression du chantier */}
+        {selectedChantier && (
+          <div className="mt-4">
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-blue-200">Avancement global</span>
+              <span className="font-bold">{selectedChantier.progress}%</span>
+            </div>
+            <div className="h-2 bg-blue-500 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white rounded-full transition-all"
+                style={{ width: `${selectedChantier.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className="pb-20">
-        {activeTab === 'chantiers' && <ChantiersView />}
         {activeTab === 'taches' && <TachesView />}
         {activeTab === 'alertes' && <AlertesView />}
         {activeTab === 'profil' && <ProfilView />}
@@ -463,7 +551,6 @@ export default function ChantierMobilePage() {
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 flex justify-around">
         {[
-          { id: 'chantiers', icon: Home, label: 'Chantiers' },
           { id: 'taches', icon: Hammer, label: 'Tâches' },
           { id: 'alertes', icon: Bell, label: 'Alertes' },
           { id: 'profil', icon: User, label: 'Profil' },
@@ -712,5 +799,21 @@ function MobileTaskCard({ task, onProgressChange, onPhotoClick, onAlertClick }: 
         </button>
       </div>
     </div>
+  );
+}
+
+// Wrapper avec Suspense pour useSearchParams
+export default function ChantierMobilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-500">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <ChantierMobileContent />
+    </Suspense>
   );
 }
