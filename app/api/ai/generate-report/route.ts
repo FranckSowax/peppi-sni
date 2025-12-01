@@ -238,25 +238,49 @@ export async function POST(request: NextRequest) {
     // Construire le prompt
     const prompt = buildPrompt(messages as WhatsAppMessage[], startDate, endDate);
 
+    // Vérifier si au moins une clé API est configurée
+    const hasGemini = !!GEMINI_API_KEY;
+    const hasOpenAI = !!OPENAI_API_KEY;
+    
+    console.log('API Keys status:', { hasGemini, hasOpenAI });
+    
+    if (!hasGemini && !hasOpenAI) {
+      return NextResponse.json(
+        { error: 'Aucune clé API configurée. Veuillez configurer GEMINI_API_KEY ou OPENAI_API_KEY.' },
+        { status: 500 }
+      );
+    }
+
     // Essayer Gemini d'abord, puis OpenAI en fallback
     let report = '';
     let provider = '';
+    let lastError = '';
 
-    try {
-      report = await generateWithGemini(prompt);
-      provider = 'gemini';
-    } catch (geminiError) {
-      console.log('Gemini failed, trying OpenAI:', geminiError);
+    if (hasGemini) {
+      try {
+        report = await generateWithGemini(prompt);
+        provider = 'gemini';
+      } catch (geminiError) {
+        console.log('Gemini failed:', geminiError);
+        lastError = String(geminiError);
+      }
+    }
+    
+    if (!report && hasOpenAI) {
       try {
         report = await generateWithOpenAI(prompt);
         provider = 'openai';
       } catch (openaiError) {
-        console.error('Both AI providers failed:', openaiError);
-        return NextResponse.json(
-          { error: 'Impossible de générer le rapport. Veuillez réessayer.' },
-          { status: 500 }
-        );
+        console.error('OpenAI failed:', openaiError);
+        lastError = String(openaiError);
       }
+    }
+    
+    if (!report) {
+      return NextResponse.json(
+        { error: `Erreur de génération: ${lastError}` },
+        { status: 500 }
+      );
     }
 
     // Statistiques
