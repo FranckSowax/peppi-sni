@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,23 +18,30 @@ import {
   Building2,
   ArrowLeft,
   Plus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2,
+  X,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
 // --- TYPES ---
 interface Task {
   id: string;
+  dbId?: number; // ID en base de données
   name: string;
   unit: string;
   done: number;
   target: number;
   photos: number;
+  photoUrls?: string[];
 }
 
 interface Serie {
   id: string;
+  dbId?: number;
   title: string;
   progress: number;
   tasks: Task[];
@@ -48,6 +55,11 @@ interface Chantier {
   status: 'on_track' | 'delayed' | 'ahead';
   lastUpdate: string;
   chef: string;
+}
+
+interface PhotoPreview {
+  file: File;
+  preview: string;
 }
 
 // --- DONNÉES DES CHANTIERS ---
@@ -227,8 +239,8 @@ export default function ChantierPage() {
     setHasChanges(true);
   };
 
-  // Ajouter une photo à une tâche
-  const addPhoto = (serieId: string, taskId: string) => {
+  // Ajouter une URL de photo à une tâche (après upload réussi)
+  const addPhotoUrl = (serieId: string, taskId: string, photoUrl: string) => {
     setData(prev => {
       const newData = { ...prev };
       const serie = newData[activeTab].find(s => s.id === serieId);
@@ -236,11 +248,12 @@ export default function ChantierPage() {
         const task = serie.tasks.find(t => t.id === taskId);
         if (task) {
           task.photos += 1;
+          if (!task.photoUrls) task.photoUrls = [];
+          task.photoUrls.push(photoUrl);
         }
       }
       return newData;
     });
-    toast.success('Photo ajoutée avec succès');
     setHasChanges(true);
   };
 
@@ -465,9 +478,10 @@ export default function ChantierPage() {
                   {serie.tasks.map((task) => (
                     <TaskRow 
                       key={task.id} 
-                      task={task} 
+                      task={task}
+                      chantierId={selectedChantier.id}
                       onProgressChange={(val) => updateTaskProgress(serie.id, task.id, val)}
-                      onAddPhoto={() => addPhoto(serie.id, task.id)}
+                      onPhotoUploaded={(url) => addPhotoUrl(serie.id, task.id, url)}
                     />
                   ))}
                 </div>
@@ -495,12 +509,17 @@ export default function ChantierPage() {
 
 // --- COMPOSANTS AUXILIAIRES ---
 
-function TaskRow({ task, onProgressChange, onAddPhoto }: { 
-  task: Task; 
+function TaskRow({ task, chantierId, onProgressChange, onPhotoUploaded }: { 
+  task: Task;
+  chantierId: number;
   onProgressChange: (val: number) => void;
-  onAddPhoto: () => void;
+  onPhotoUploaded: (url: string) => void;
 }) {
   const [val, setVal] = useState(task.done);
+  const [uploading, setUploading] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const handleChange = (newVal: number) => {
     setVal(newVal);
@@ -514,71 +533,208 @@ function TaskRow({ task, onProgressChange, onAddPhoto }: {
     return 'bg-emerald-500';
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+        setShowPhotoModal(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadPhoto = async () => {
+    const file = fileInputRef.current?.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('taskId', task.dbId?.toString() || task.id);
+      formData.append('chantierId', chantierId.toString());
+      formData.append('takenBy', 'Technicien');
+
+      const response = await fetch('/api/chantier/upload-photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Photo uploadée avec succès');
+        onPhotoUploaded(data.url);
+        setShowPhotoModal(false);
+        setPhotoPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        toast.error(data.error || 'Erreur lors de l\'upload');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Erreur lors de l\'upload');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-        
-        {/* Info Tâche */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">#{task.id}</span>
-            <h4 className="font-semibold text-slate-800 truncate">{task.name}</h4>
-          </div>
-          <div className="text-xs text-slate-500">Unité: {task.unit} • Objectif: {task.target}</div>
-        </div>
-
-        {/* Slider d'avancement */}
-        <div className="flex-1 w-full lg:max-w-xs">
-          <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
-            <span>Avancement</span>
-            <span className={cn(
-              val === 100 ? "text-emerald-600" : val >= 50 ? "text-blue-600" : "text-slate-600"
-            )}>{val}%</span>
-          </div>
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            step="5"
-            value={val} 
-            onChange={(e) => handleChange(parseInt(e.target.value))}
-            className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-          <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
-            <div 
-              className={cn("h-full transition-all duration-300", getProgressColor(val))} 
-              style={{width: `${val}%`}}
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onAddPhoto}
-            className={cn(
-              "p-3 rounded-lg border flex items-center gap-2 transition-colors",
-              task.photos > 0 
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-                : 'border-slate-200 hover:bg-slate-50 text-slate-500'
-            )}
-          >
-            <Camera size={18} />
-            <span className="text-xs font-bold">{task.photos > 0 ? `${task.photos}` : '+'}</span>
-          </button>
+    <>
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           
-          {val === 100 ? (
-            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 size={24} />
+          {/* Info Tâche */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">#{task.id}</span>
+              <h4 className="font-semibold text-slate-800 truncate">{task.name}</h4>
             </div>
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
-              <span className="text-xs font-bold">{val}%</span>
+            <div className="text-xs text-slate-500">Unité: {task.unit} • Objectif: {task.target}</div>
+          </div>
+
+          {/* Slider d'avancement */}
+          <div className="flex-1 w-full lg:max-w-xs">
+            <div className="flex justify-between text-xs font-bold text-slate-600 mb-2">
+              <span>Avancement</span>
+              <span className={cn(
+                val === 100 ? "text-emerald-600" : val >= 50 ? "text-blue-600" : "text-slate-600"
+              )}>{val}%</span>
             </div>
-          )}
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              step="5"
+              value={val} 
+              onChange={(e) => handleChange(parseInt(e.target.value))}
+              className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+              <div 
+                className={cn("h-full transition-all duration-300", getProgressColor(val))} 
+                style={{width: `${val}%`}}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className={cn(
+                "p-3 rounded-lg border flex items-center gap-2 transition-colors",
+                task.photos > 0 
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
+                  : 'border-slate-200 hover:bg-slate-50 text-slate-500',
+                uploading && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              {uploading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+              <span className="text-xs font-bold">{task.photos > 0 ? `${task.photos}` : '+'}</span>
+            </button>
+            
+            {val === 100 ? (
+              <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 size={24} />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+                <span className="text-xs font-bold">{val}%</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Miniatures des photos existantes */}
+        {task.photoUrls && task.photoUrls.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {task.photoUrls.map((url, idx) => (
+                <img 
+                  key={idx}
+                  src={url} 
+                  alt={`Photo ${idx + 1}`}
+                  className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Modal de prévisualisation photo */}
+      {showPhotoModal && photoPreview && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-bold text-lg">Confirmer la photo</h3>
+              <button 
+                onClick={() => {
+                  setShowPhotoModal(false);
+                  setPhotoPreview(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="p-2 hover:bg-slate-100 rounded-full"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <img 
+                src={photoPreview} 
+                alt="Preview" 
+                className="w-full h-64 object-contain rounded-lg bg-slate-100"
+              />
+              <p className="text-sm text-slate-500 mt-2 text-center">
+                Tâche: {task.name}
+              </p>
+            </div>
+            <div className="p-4 border-t flex gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  setShowPhotoModal(false);
+                  setPhotoPreview(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+              >
+                Annuler
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={uploadPhoto}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Upload...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Envoyer
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
