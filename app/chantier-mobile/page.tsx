@@ -857,10 +857,41 @@ function MobileTaskCard({ task, onProgressChange, onPhotoClick, onAlertClick }: 
   onAlertClick: () => void;
 }) {
   const [val, setVal] = useState(task.done);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
   const handleChange = (newVal: number) => {
-    setVal(newVal);
-    onProgressChange(newVal);
+    const clampedVal = Math.max(0, Math.min(100, Math.round(newVal / 5) * 5));
+    setVal(clampedVal);
+    onProgressChange(clampedVal);
+  };
+
+  // Gestion du touch pour le slider
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!sliderRef.current) return;
+    e.stopPropagation();
+    const rect = sliderRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+    handleChange(percentage);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!sliderRef.current) return;
+    e.stopPropagation();
+    const rect = sliderRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+    handleChange(percentage);
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+    handleChange(percentage);
   };
 
   return (
@@ -892,7 +923,7 @@ function MobileTaskCard({ task, onProgressChange, onPhotoClick, onAlertClick }: 
         </div>
       )}
 
-      {/* Slider */}
+      {/* Slider tactile personnalisé */}
       <div className="mb-4">
         <div className="flex justify-between text-sm font-bold mb-2">
           <span className="text-slate-600">Avancement</span>
@@ -900,15 +931,54 @@ function MobileTaskCard({ task, onProgressChange, onPhotoClick, onAlertClick }: 
             val === 100 ? "text-emerald-600" : val >= 50 ? "text-blue-600" : "text-slate-600"
           )}>{val}%</span>
         </div>
-        <input 
-          type="range" 
-          min="0" 
-          max="100" 
-          step="5"
-          value={val} 
-          onChange={(e) => handleChange(parseInt(e.target.value))}
-          className="w-full h-4 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-        />
+        
+        {/* Slider touch-friendly */}
+        <div 
+          ref={sliderRef}
+          className="relative h-12 flex items-center touch-none select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onClick={handleClick}
+        >
+          {/* Track background */}
+          <div className="absolute inset-x-0 h-3 bg-slate-200 rounded-full" />
+          
+          {/* Track filled */}
+          <div 
+            className={cn(
+              "absolute left-0 h-3 rounded-full transition-all duration-100",
+              val === 100 ? "bg-emerald-500" : val >= 50 ? "bg-blue-500" : "bg-blue-400"
+            )}
+            style={{ width: `${val}%` }}
+          />
+          
+          {/* Thumb */}
+          <div 
+            className={cn(
+              "absolute w-8 h-8 rounded-full shadow-lg border-4 border-white transform -translate-x-1/2 transition-all duration-100",
+              val === 100 ? "bg-emerald-500" : val >= 50 ? "bg-blue-500" : "bg-blue-400"
+            )}
+            style={{ left: `${val}%` }}
+          />
+        </div>
+
+        {/* Boutons rapides */}
+        <div className="flex justify-between mt-2 gap-1">
+          {[0, 25, 50, 75, 100].map(v => (
+            <button
+              key={v}
+              onClick={() => handleChange(v)}
+              className={cn(
+                "flex-1 py-2 text-xs font-bold rounded-lg transition-colors",
+                val === v 
+                  ? "bg-blue-500 text-white" 
+                  : "bg-slate-100 text-slate-600 active:bg-slate-200"
+              )}
+            >
+              {v}%
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Actions */}
