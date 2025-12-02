@@ -231,31 +231,147 @@ function ChantierMobileContent() {
   const [photoTask, setPhotoTask] = useState<Task | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Charger les données du chantier depuis l'URL
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  // Charger les données du chantier depuis Supabase
   useEffect(() => {
-    if (chantierIdParam) {
-      const id = parseInt(chantierIdParam);
-      const data = CHANTIERS_DATA[id];
-      if (data) {
-        setSelectedChantier(data.chantier);
-        setSeries(data.series);
+    const loadChantierData = async () => {
+      if (!chantierIdParam) {
+        setLoading(false);
+        return;
       }
-    }
+
+      try {
+        const response = await fetch(`/api/chantier?id=${chantierIdParam}`);
+        const data = await response.json();
+
+        if (data.chantier) {
+          setSelectedChantier({
+            id: data.chantier.id,
+            name: data.chantier.name,
+            location: data.chantier.location || '',
+            progress: data.chantier.progress || 0,
+            status: data.chantier.status || 'on_track',
+            chef: data.chantier.chef_name || 'Non assigné',
+          });
+
+          // Transformer les séries et tâches
+          const transformedSeries: Serie[] = (data.series || []).map((s: {
+            id: number;
+            serie_code: string;
+            title: string;
+            progress: number;
+            tasks: Array<{
+              id: number;
+              task_code: string;
+              name: string;
+              unit: string;
+              progress: number;
+              target_quantity: number;
+              photos: string[];
+            }>;
+          }) => ({
+            id: s.serie_code,
+            dbId: s.id,
+            title: s.title,
+            progress: s.progress || 0,
+            tasks: (s.tasks || []).map((t) => ({
+              id: t.task_code,
+              dbId: t.id,
+              name: t.name,
+              unit: t.unit || 'U',
+              done: t.progress || 0,
+              target: t.target_quantity || 100,
+              photos: (t.photos || []).length,
+              photoUrls: t.photos || [],
+            })),
+          }));
+
+          setSeries(transformedSeries);
+        } else {
+          // Fallback sur les données locales si pas de données Supabase
+          const id = parseInt(chantierIdParam);
+          const localData = CHANTIERS_DATA[id];
+          if (localData) {
+            setSelectedChantier(localData.chantier);
+            setSeries(localData.series);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur chargement:', error);
+        // Fallback sur les données locales
+        const id = parseInt(chantierIdParam);
+        const localData = CHANTIERS_DATA[id];
+        if (localData) {
+          setSelectedChantier(localData.chantier);
+          setSeries(localData.series);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChantierData();
   }, [chantierIdParam]);
 
-  // Mettre à jour l'avancement d'une tâche
-  const updateTaskProgress = (serieId: string, taskId: string, newValue: number) => {
-    setSeries(prev => prev.map(serie => {
-      if (serie.id === serieId) {
-        const updatedTasks = serie.tasks.map(task => 
-          task.id === taskId ? { ...task, done: newValue } : task
+  // Mettre à jour l'avancement d'une tâche (local + Supabase)
+  const updateTaskProgress = async (serieId: string, taskId: string, newValue: number) => {
+    // Trouver la tâche pour obtenir son dbId
+    const serie = series.find(s => s.id === serieId);
+    const task = serie?.tasks.find(t => t.id === taskId);
+    
+    // Mise à jour locale immédiate
+    setSeries(prev => prev.map(s => {
+      if (s.id === serieId) {
+        const updatedTasks = s.tasks.map(t => 
+          t.id === taskId ? { ...t, done: newValue } : t
         );
         const avgProgress = Math.round(updatedTasks.reduce((sum, t) => sum + t.done, 0) / updatedTasks.length);
-        return { ...serie, tasks: updatedTasks, progress: avgProgress };
+        return { ...s, tasks: updatedTasks, progress: avgProgress };
       }
-      return serie;
+      return s;
     }));
-    toast.success(`Avancement mis à jour: ${newValue}%`);
+
+    // Mettre à jour le progrès du chantier localement
+    if (selectedChantier) {
+      const updatedSeries = series.map(s => {
+        if (s.id === serieId) {
+          const updatedTasks = s.tasks.map(t => 
+            t.id === taskId ? { ...t, done: newValue } : t
+          );
+          return { ...s, progress: Math.round(updatedTasks.reduce((sum, t) => sum + t.done, 0) / updatedTasks.length) };
+        }
+        return s;
+      });
+      const chantierProgress = Math.round(updatedSeries.reduce((sum, s) => sum + s.progress, 0) / updatedSeries.length);
+      setSelectedChantier({ ...selectedChantier, progress: chantierProgress });
+    }
+
+    // Synchroniser avec Supabase si on a un dbId
+    if (task?.dbId) {
+      setSyncing(true);
+      try {
+        const response = await fetch('/api/chantier', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: task.dbId, progress: newValue }),
+        });
+        
+        if (response.ok) {
+          toast.success('Synchronisé ✓');
+        } else {
+          toast.error('Erreur de synchronisation');
+        }
+      } catch (error) {
+        console.error('Sync error:', error);
+        toast.error('Erreur de connexion');
+      } finally {
+        setSyncing(false);
+      }
+    } else {
+      toast.success('Avancement mis à jour');
+    }
   };
 
   // Créer une alerte
@@ -496,6 +612,19 @@ function ChantierMobileContent() {
     </div>
   );
 
+  // Écran de chargement
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Toaster position="top-center" richColors />
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-500">Chargement du chantier...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster position="top-center" richColors />
@@ -506,21 +635,27 @@ function ChantierMobileContent() {
           <div className="flex items-center gap-3">
             <Hammer className="w-8 h-8" />
             <div>
-              <h1 className="text-xl font-bold">
+              <h1 className="text-xl font-bold flex items-center gap-2">
                 {selectedChantier ? selectedChantier.name : 'PEPPI Chantier'}
+                {syncing && <Loader2 className="w-4 h-4 animate-spin" />}
               </h1>
               <p className="text-blue-200 text-sm">
                 {selectedChantier ? `${selectedChantier.location} • ${selectedChantier.chef}` : 'Mode Technicien'}
               </p>
             </div>
           </div>
-          <div className="relative">
-            <Bell className="w-6 h-6" onClick={() => setActiveTab('alertes')} />
-            {alerts.filter(a => !a.resolved).length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center">
-                {alerts.filter(a => !a.resolved).length}
-              </span>
+          <div className="flex items-center gap-3">
+            {syncing && (
+              <span className="text-xs bg-blue-500 px-2 py-1 rounded-full">Sync...</span>
             )}
+            <div className="relative">
+              <Bell className="w-6 h-6 cursor-pointer" onClick={() => setActiveTab('alertes')} />
+              {alerts.filter(a => !a.resolved).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center">
+                  {alerts.filter(a => !a.resolved).length}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         
@@ -533,7 +668,7 @@ function ChantierMobileContent() {
             </div>
             <div className="h-2 bg-blue-500 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-white rounded-full transition-all"
+                className="h-full bg-white rounded-full transition-all duration-500"
                 style={{ width: `${selectedChantier.progress}%` }}
               />
             </div>

@@ -246,11 +246,14 @@ const statusConfig = {
 
 // --- COMPOSANT PRINCIPAL ---
 export default function ChantierPage() {
+  const [chantiers, setChantiers] = useState<Chantier[]>(CHANTIERS);
   const [selectedChantier, setSelectedChantier] = useState<Chantier | null>(null);
   const [activeTab, setActiveTab] = useState<'logement' | 'parcelle'>('logement');
   const [expandedSerie, setExpandedSerie] = useState<string | null>("200");
   const [data, setData] = useState(INITIAL_DATA);
   const [hasChanges, setHasChanges] = useState(false);
+  const [loadingChantiers, setLoadingChantiers] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   
   // États pour l'édition
   const [editingSerieId, setEditingSerieId] = useState<string | null>(null);
@@ -263,6 +266,149 @@ export default function ChantierPage() {
   // États pour les alertes
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
+
+  // Charger la liste des chantiers depuis Supabase
+  useEffect(() => {
+    const loadChantiers = async () => {
+      try {
+        const response = await fetch('/api/chantier');
+        const result = await response.json();
+        
+        if (result.chantiers && result.chantiers.length > 0) {
+          const formattedChantiers: Chantier[] = result.chantiers.map((c: {
+            id: number;
+            name: string;
+            location: string;
+            progress: number;
+            status: 'on_track' | 'delayed' | 'ahead';
+            chef_name: string;
+            last_update: string;
+          }) => ({
+            id: c.id,
+            name: c.name,
+            location: c.location || '',
+            progress: c.progress || 0,
+            status: c.status || 'on_track',
+            chef: c.chef_name || 'Non assigné',
+            lastUpdate: c.last_update ? formatLastUpdate(c.last_update) : 'Jamais',
+          }));
+          setChantiers(formattedChantiers);
+        }
+      } catch (error) {
+        console.error('Erreur chargement chantiers:', error);
+        // Garder les données locales en cas d'erreur
+      } finally {
+        setLoadingChantiers(false);
+      }
+    };
+
+    loadChantiers();
+  }, []);
+
+  // Charger les détails d'un chantier quand sélectionné
+  const loadChantierDetail = async (chantier: Chantier) => {
+    setSelectedChantier(chantier);
+    setLoadingDetail(true);
+    
+    try {
+      const response = await fetch(`/api/chantier?id=${chantier.id}`);
+      const result = await response.json();
+      
+      if (result.series && result.series.length > 0) {
+        // Transformer les séries en format local
+        const logementSeries: Serie[] = result.series
+          .filter((s: { category: string }) => s.category === 'logement' || !s.category)
+          .map((s: {
+            id: number;
+            serie_code: string;
+            title: string;
+            progress: number;
+            tasks: Array<{
+              id: number;
+              task_code: string;
+              name: string;
+              unit: string;
+              progress: number;
+              target_quantity: number;
+              photos: string[];
+            }>;
+          }) => ({
+            id: s.serie_code,
+            dbId: s.id,
+            title: s.title,
+            progress: s.progress || 0,
+            tasks: (s.tasks || []).map((t) => ({
+              id: t.task_code,
+              dbId: t.id,
+              name: t.name,
+              unit: t.unit || 'U',
+              done: t.progress || 0,
+              target: t.target_quantity || 100,
+              photos: (t.photos || []).length,
+              photoUrls: t.photos || [],
+            })),
+          }));
+
+        const parcelleSeries: Serie[] = result.series
+          .filter((s: { category: string }) => s.category === 'parcelle')
+          .map((s: {
+            id: number;
+            serie_code: string;
+            title: string;
+            progress: number;
+            tasks: Array<{
+              id: number;
+              task_code: string;
+              name: string;
+              unit: string;
+              progress: number;
+              target_quantity: number;
+              photos: string[];
+            }>;
+          }) => ({
+            id: s.serie_code,
+            dbId: s.id,
+            title: s.title,
+            progress: s.progress || 0,
+            tasks: (s.tasks || []).map((t) => ({
+              id: t.task_code,
+              dbId: t.id,
+              name: t.name,
+              unit: t.unit || 'U',
+              done: t.progress || 0,
+              target: t.target_quantity || 100,
+              photos: (t.photos || []).length,
+              photoUrls: t.photos || [],
+            })),
+          }));
+
+        setData({
+          logement: logementSeries.length > 0 ? logementSeries : INITIAL_DATA.logement,
+          parcelle: parcelleSeries.length > 0 ? parcelleSeries : INITIAL_DATA.parcelle,
+        });
+      }
+    } catch (error) {
+      console.error('Erreur chargement détail:', error);
+      // Garder les données locales
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // Formater la date de dernière mise à jour
+  const formatLastUpdate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60) return `Il y a ${diffMins}min`;
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays === 1) return 'Hier';
+    return `Il y a ${diffDays}j`;
+  };
 
   // Mise à jour de l'avancement d'une tâche
   const updateTaskProgress = (serieId: string, taskId: string, newValue: number) => {
@@ -498,8 +644,14 @@ export default function ChantierPage() {
             </Button>
           </div>
 
+          {loadingChantiers ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              <span className="ml-3 text-gray-500">Chargement des chantiers...</span>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CHANTIERS.map((chantier) => {
+            {chantiers.map((chantier) => {
               const status = statusConfig[chantier.status];
               return (
                 <Card 
@@ -510,7 +662,7 @@ export default function ChantierPage() {
                   <CardContent className="p-6">
                     <div 
                       className="cursor-pointer"
-                      onClick={() => setSelectedChantier(chantier)}
+                      onClick={() => loadChantierDetail(chantier)}
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div>
@@ -552,7 +704,7 @@ export default function ChantierPage() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => setSelectedChantier(chantier)}
+                        onClick={() => loadChantierDetail(chantier)}
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         Gérer
@@ -586,6 +738,7 @@ export default function ChantierPage() {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </div>
     );
