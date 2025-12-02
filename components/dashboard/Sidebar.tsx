@@ -11,7 +11,6 @@ import {
   Target,
   ShoppingCart,
   HardHat,
-  Wallet,
   TrendingUp,
   Settings,
   LogOut,
@@ -46,7 +45,6 @@ const mainNavItems: NavItem[] = [
   { title: 'Stratégie', href: '/dashboard/strategie', icon: <Target className="w-5 h-5" /> },
   { title: 'Achats / Supply', href: '/dashboard/achats', icon: <ShoppingCart className="w-5 h-5" /> },
   { title: 'Chantier', href: '/dashboard/chantier', icon: <HardHat className="w-5 h-5" /> },
-  { title: 'Finance', href: '/dashboard/finance', icon: <Wallet className="w-5 h-5" /> },
   { title: 'Commercial', href: '/dashboard/commercial', icon: <TrendingUp className="w-5 h-5" /> },
 ];
 
