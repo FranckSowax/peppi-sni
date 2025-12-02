@@ -15,9 +15,9 @@ export default function DashboardPage() {
         subtitle="Vue d'ensemble de tous les projets SNI" 
       />
       
-      <main className="p-6">
+      <main className="p-3 sm:p-4 md:p-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-4 md:mb-6">
           <StatsCard
             title="Projets Actifs"
             value="24"
@@ -57,14 +57,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Widgets Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-4 md:mb-6">
           <ProjectMapWidget />
           <FinancialChart />
           <ProjectProgressWidget />
         </div>
 
         {/* Secondary Widgets */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
           <FieldFeedWidget />
           <AlertsWidget />
         </div>

@@ -622,15 +622,16 @@ export default function ChantierPage() {
       <div className="flex flex-col h-full">
         <DashboardHeader title="Chantier 360°" />
         
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           {/* Barre d'actions */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 md:mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-1">Sélectionnez un chantier</h2>
-              <p className="text-gray-500">Cliquez sur une carte pour accéder au suivi détaillé</p>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">Sélectionnez un chantier</h2>
+              <p className="text-sm text-gray-500">Cliquez sur une carte pour accéder au suivi détaillé</p>
             </div>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setShowAlertsPanel(true)}
               className="relative"
             >
@@ -650,7 +651,7 @@ export default function ChantierPage() {
               <span className="ml-3 text-gray-500">Chargement des chantiers...</span>
             </div>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             {chantiers.map((chantier) => {
               const status = statusConfig[chantier.status];
               return (
@@ -659,27 +660,27 @@ export default function ChantierPage() {
                   className="hover:shadow-lg transition-all border-l-4 overflow-hidden"
                   style={{ borderLeftColor: chantier.status === 'delayed' ? '#ef4444' : chantier.status === 'ahead' ? '#3b82f6' : '#22c55e' }}
                 >
-                  <CardContent className="p-6">
+                  <CardContent className="p-3 sm:p-4 md:p-6">
                     <div 
                       className="cursor-pointer"
                       onClick={() => loadChantierDetail(chantier)}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-bold text-lg text-gray-800">{chantier.name}</h3>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                            <Map className="w-3 h-3" /> {chantier.location}
+                      <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-sm sm:text-base md:text-lg text-gray-800 truncate">{chantier.name}</h3>
+                          <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
+                            <Map className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{chantier.location}</span>
                           </p>
                         </div>
-                        <Badge className={status.color}>{status.label}</Badge>
+                        <Badge className={cn(status.color, "text-xs whitespace-nowrap")}>{status.label}</Badge>
                       </div>
 
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Avancement global</span>
+                      <div className="mb-3 sm:mb-4">
+                        <div className="flex justify-between text-xs sm:text-sm mb-1">
+                          <span className="text-gray-600">Avancement</span>
                           <span className="font-bold">{chantier.progress}%</span>
                         </div>
-                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2 sm:h-3 bg-gray-100 rounded-full overflow-hidden">
                           <div 
                             className={cn(
                               "h-full rounded-full transition-all",
@@ -692,14 +693,14 @@ export default function ChantierPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm mb-4">
-                        <span className="text-gray-500">Chef: {chantier.chef}</span>
-                        <span className="text-gray-400">{chantier.lastUpdate}</span>
+                      <div className="flex items-center justify-between text-xs sm:text-sm mb-3 sm:mb-4">
+                        <span className="text-gray-500 truncate">Chef: {chantier.chef}</span>
+                        <span className="text-gray-400 whitespace-nowrap ml-2">{chantier.lastUpdate}</span>
                       </div>
                     </div>
                     
                     {/* Boutons d'action */}
-                    <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-gray-100">
                       <Button
                         variant="outline"
                         size="sm"

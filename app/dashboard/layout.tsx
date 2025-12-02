@@ -9,7 +9,8 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <div className="pl-64 transition-all duration-300">
+      {/* Responsive padding: mobile = 0, desktop = sidebar width */}
+      <div className="lg:pl-64 pl-0 pt-16 lg:pt-0 transition-all duration-300">
         {children}
       </div>
       <AIAssistant />

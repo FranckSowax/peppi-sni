@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -22,6 +22,8 @@ import {
   FileText,
   Megaphone,
   ClipboardList,
+  Menu,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
@@ -63,8 +65,28 @@ const bottomNavItems: NavItem[] = [
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Détecter le mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Fermer le menu mobile lors du changement de page
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -74,12 +96,34 @@ export function Sidebar() {
   };
 
   return (
-    <aside
-      className={cn(
-        'fixed left-0 top-0 z-40 h-screen bg-white border-r transition-all duration-300 flex flex-col',
-        collapsed ? 'w-16' : 'w-64'
+    <>
+      {/* Bouton hamburger mobile */}
+      <button
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border"
+      >
+        {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* Overlay mobile */}
+      {mobileOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileOpen(false)}
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-40 h-screen bg-white border-r transition-all duration-300 flex flex-col',
+          // Desktop
+          'hidden lg:flex',
+          collapsed ? 'lg:w-16' : 'lg:w-64',
+          // Mobile
+          mobileOpen && 'flex w-72 !translate-x-0',
+          !mobileOpen && 'lg:translate-x-0 -translate-x-full'
+        )}
+      >
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b">
         <Link href="/dashboard" className="flex items-center gap-3">
@@ -210,7 +254,7 @@ export function Sidebar() {
       </div>
 
       {/* User Info */}
-      {!collapsed && (
+      {(!collapsed || isMobile) && (
         <div className="border-t p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -224,5 +268,6 @@ export function Sidebar() {
         </div>
       )}
     </aside>
+    </>
   );
 }

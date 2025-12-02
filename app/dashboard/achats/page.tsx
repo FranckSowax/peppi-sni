@@ -76,60 +76,60 @@ export default function AchatsPage() {
         subtitle="Gestion des matériaux et comparaison des prix par projet" 
       />
       
-      <main className="p-6">
+      <main className="p-3 sm:p-4 md:p-6">
         {/* Stats rapides */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 md:mb-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-primary" />
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Projets</p>
-                  <p className="text-2xl font-bold text-primary">{stats.totalProjects}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Projets</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{stats.totalProjects}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-amber-100 to-amber-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-200 rounded-lg flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-amber-700" />
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">En construction</p>
-                  <p className="text-2xl font-bold text-amber-700">{stats.inConstruction}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Construction</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-amber-700">{stats.inConstruction}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-green-100 to-green-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center">
-                  <Package className="w-5 h-5 text-green-700" />
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-green-700" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Actifs</p>
-                  <p className="text-2xl font-bold text-green-700">{stats.activeProjects}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Actifs</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-700">{stats.activeProjects}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-blue-100 to-blue-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-blue-700" />
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Budget Total</p>
-                  <p className="text-2xl font-bold text-blue-700">{formatCurrency(stats.totalBudget)}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Budget</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-700">{formatCurrency(stats.totalBudget)}</p>
                 </div>
               </div>
             </CardContent>
@@ -137,7 +137,7 @@ export default function AchatsPage() {
         </div>
 
         {/* Barre de recherche */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 md:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
@@ -150,13 +150,13 @@ export default function AchatsPage() {
         </div>
 
         {/* Liste des projets */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-primary" />
-            Sélectionnez un projet pour gérer ses matériaux
+        <div className="space-y-3 sm:space-y-4">
+          <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <span className="truncate">Sélectionnez un projet pour gérer ses matériaux</span>
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredProjects.map((project) => {
               const phaseKey = project.phase as keyof typeof phaseConfig;
               const phase = phaseConfig[phaseKey] || phaseConfig.planification;
@@ -166,41 +166,41 @@ export default function AchatsPage() {
                   <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group overflow-hidden border-2 hover:border-primary/30">
                     <CardContent className="p-0">
                       {/* Header avec image placeholder */}
-                      <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 relative">
+                      <div className="h-24 sm:h-32 bg-gradient-to-br from-gray-100 to-gray-200 relative">
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Building2 className="w-12 h-12 text-gray-400" />
+                          <Building2 className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
                         </div>
-                        <div className={cn('absolute top-3 left-3 px-2 py-1 rounded-full text-xs', phase.color)}>
+                        <div className={cn('absolute top-2 sm:top-3 left-2 sm:left-3 px-2 py-1 rounded-full text-xs', phase.color)}>
                           {phase.label}
                         </div>
-                        <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium">
+                        <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium">
                           {project.region || 'Non défini'}
                         </div>
                       </div>
                       
                       {/* Content */}
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-1">
+                      <div className="p-3 sm:p-4">
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <h3 className="font-semibold text-sm sm:text-base md:text-lg group-hover:text-primary transition-colors line-clamp-1">
                             {project.name}
                           </h3>
-                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
                         </div>
                         
-                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                          {project.description || 'Cliquez pour gérer les matériaux de ce projet'}
+                        <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3 line-clamp-2">
+                          {project.description || 'Cliquez pour gérer les matériaux'}
                         </p>
 
                         {/* Progress bar */}
-                        <div className="mb-3">
-                          <div className="flex justify-between text-sm mb-1">
+                        <div className="mb-2 sm:mb-3">
+                          <div className="flex justify-between text-xs sm:text-sm mb-1">
                             <span className="text-gray-500">Avancement</span>
                             <span className="font-medium">{project.progress}%</span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                             <div
                               className={cn(
-                                'h-2 rounded-full transition-all',
+                                'h-1.5 sm:h-2 rounded-full transition-all',
                                 project.progress >= 80 ? 'bg-green-500' :
                                 project.progress >= 50 ? 'bg-amber-500' : 'bg-primary'
                               )}
