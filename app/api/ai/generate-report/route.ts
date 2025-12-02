@@ -84,6 +84,118 @@ async function generateWithOpenAI(prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content || '';
 }
 
+// Génération de rapport basique sans IA (fallback)
+function generateBasicReport(messages: WhatsAppMessage[], startDate: string, endDate: string): string {
+  const formatDate = (date: string) => new Date(date).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const problemes = messages.filter(m => m.report_type === 'probleme');
+  const avancements = messages.filter(m => m.report_type === 'avancement');
+  const livraisons = messages.filter(m => m.report_type === 'livraison');
+  
+  const projets = new Map<string, WhatsAppMessage[]>();
+  messages.forEach(m => {
+    const projet = m.project_name || 'Non spécifié';
+    if (!projets.has(projet)) projets.set(projet, []);
+    projets.get(projet)!.push(m);
+  });
+
+  let report = `# 📋 Rapport de Synthèse des Chantiers
+
+📅 **Période:** Du ${formatDate(startDate)} au ${formatDate(endDate)}
+
+---
+
+## 📊 Résumé Exécutif
+
+Durant cette période, **${messages.length} messages** ont été collectés via WhatsApp concernant **${projets.size} projet(s)**.
+
+| Catégorie | Nombre |
+|-----------|--------|
+| 🔴 Problèmes signalés | ${problemes.length} |
+| ✅ Avancées rapportées | ${avancements.length} |
+| 📦 Livraisons | ${livraisons.length} |
+
+---
+
+## 🏗️ Projets Concernés
+
+${Array.from(projets.keys()).map(p => `- **${p}** (${projets.get(p)!.length} messages)`).join('\n')}
+
+`;
+
+  if (problemes.length > 0) {
+    report += `---
+
+## ⚠️ Problèmes Signalés (${problemes.length})
+
+`;
+    problemes.forEach((p, i) => {
+      const priority = p.priority === 'haute' ? '🔴' : p.priority === 'moyenne' ? '🟠' : '🟡';
+      report += `### ${i + 1}. ${priority} ${p.project_name || 'Projet non spécifié'}
+
+- **Signalé par:** ${p.sender_name}
+- **Date:** ${new Date(p.created_at).toLocaleDateString('fr-FR')}
+- **Description:** ${p.content}
+${p.photos.length > 0 ? `- **Photos:** ${p.photos.length} photo(s) jointe(s)` : ''}
+
+`;
+    });
+  }
+
+  if (avancements.length > 0) {
+    report += `---
+
+## ✅ Avancées des Travaux (${avancements.length})
+
+`;
+    avancements.forEach((a, i) => {
+      report += `### ${i + 1}. ${a.project_name || 'Projet non spécifié'}
+
+- **Rapporté par:** ${a.sender_name}
+- **Date:** ${new Date(a.created_at).toLocaleDateString('fr-FR')}
+- **Description:** ${a.content}
+${a.photos.length > 0 ? `- **Photos:** ${a.photos.length} photo(s) jointe(s)` : ''}
+
+`;
+    });
+  }
+
+  if (livraisons.length > 0) {
+    report += `---
+
+## 📦 Livraisons de Matériaux (${livraisons.length})
+
+`;
+    livraisons.forEach((l, i) => {
+      report += `### ${i + 1}. ${l.project_name || 'Projet non spécifié'}
+
+- **Rapporté par:** ${l.sender_name}
+- **Date:** ${new Date(l.created_at).toLocaleDateString('fr-FR')}
+- **Description:** ${l.content}
+
+`;
+    });
+  }
+
+  report += `---
+
+## 📝 Note
+
+*Ce rapport a été généré automatiquement à partir des messages WhatsApp collectés. Pour une analyse plus détaillée avec recommandations IA, veuillez configurer une clé API (Gemini ou OpenAI).*
+
+---
+
+**Généré le:** ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
+`;
+
+  return report;
+}
+
 function buildPrompt(messages: WhatsAppMessage[], startDate: string, endDate: string): string {
   // Grouper les messages par type
   const problemes = messages.filter(m => m.report_type === 'probleme');
@@ -276,11 +388,11 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Si aucune API ne fonctionne, générer un rapport basique
     if (!report) {
-      return NextResponse.json(
-        { error: `Erreur de génération: ${lastError}` },
-        { status: 500 }
-      );
+      console.log('Falling back to basic report generation');
+      report = generateBasicReport(messages as WhatsAppMessage[], startDate, endDate);
+      provider = 'basic';
     }
 
     // Statistiques
