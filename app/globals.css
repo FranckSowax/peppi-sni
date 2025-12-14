@@ -67,18 +67,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-/* Print styles for argumentaire page */
-@media print {
-  @page {
-    size: A4;
-    margin: 0;
-  }
-  body {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  .page-break-after {
-    page-break-after: always;
-  }
-}
