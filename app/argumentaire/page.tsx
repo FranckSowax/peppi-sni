@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { 
   Target, 
   ShoppingCart, 
@@ -24,7 +23,8 @@ import {
   Bell,
   Camera,
   Globe,
-  Smartphone
+  Smartphone,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -61,13 +61,7 @@ export default function ArgumentairePage() {
               <div className="flex items-center justify-between mb-16">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center">
-                    <Image
-                      src="/logo-sni.png"
-                      alt="Logo SNI"
-                      width={48}
-                      height={48}
-                      className="object-contain"
-                    />
+                    <Building2 className="w-8 h-8 text-gray-800" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold">PEPPI-SNI</h2>
