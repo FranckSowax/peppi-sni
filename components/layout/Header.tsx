@@ -11,7 +11,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-3">
           <div className="w-10 h-10 relative flex-shrink-0">
             <Image
-              src="/LOGO SNI copie.png"
+              src="/logo-sni.png"
               alt="Logo SNI"
               fill
               className="object-contain"
