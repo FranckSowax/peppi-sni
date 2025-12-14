@@ -518,25 +518,6 @@ export default function ArgumentairePage() {
         </div>
       </div>
 
-      {/* Styles d'impression */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .page-break-after {
-            page-break-after: always;
-          }
-          section {
-            position: relative;
-          }
-        }
-      `}</style>
     </>
   );
 }
